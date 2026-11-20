@@ -3,6 +3,19 @@
 
 1 RT_MANIFEST "app.manifest"
 
+// 应用图标（资源管理器、任务栏、窗口标题栏）：design/icon/export_icons.py 生成
+IDI_APP ICON "app.ico"
+
+IDR_BRAND_APP_ICON    RCDATA "../../lemon-shot-core/resources/brand/app-icon.png"
+IDR_GLYPH_16          RCDATA "../../lemon-shot-core/resources/brand/glyph-16.png"
+IDR_GLYPH_18          RCDATA "../../lemon-shot-core/resources/brand/glyph-18.png"
+IDR_GLYPH_20          RCDATA "../../lemon-shot-core/resources/brand/glyph-20.png"
+IDR_GLYPH_24          RCDATA "../../lemon-shot-core/resources/brand/glyph-24.png"
+IDR_GLYPH_32          RCDATA "../../lemon-shot-core/resources/brand/glyph-32.png"
+IDR_GLYPH_36          RCDATA "../../lemon-shot-core/resources/brand/glyph-36.png"
+IDR_GLYPH_40          RCDATA "../../lemon-shot-core/resources/brand/glyph-40.png"
+IDR_GLYPH_48          RCDATA "../../lemon-shot-core/resources/brand/glyph-48.png"
+
 // 共用资源：编进 exe，运行时 FindResource 读取（见 src/Resources）
 IDR_SETTINGS_DEFAULTS RCDATA "../../lemon-shot-core/resources/settings.defaults.json"
 IDR_SHORTCUTS         RCDATA "../../lemon-shot-core/resources/shortcuts.json"

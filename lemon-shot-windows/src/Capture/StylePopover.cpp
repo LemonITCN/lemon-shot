@@ -39,12 +39,13 @@ struct Row {
     float x0, y, h;
     float x;
     bool first = true;
-    bool lines = true;  // 偏好设置里分隔换成 10pt 留白（与 Mac 端一致）
+    // false = 偏好设置「标注」页：同 Mac FormPage 的行排版，控件之间一律 8pt，分隔换成 10pt 留白（前后各 8pt）
+    bool lines = true;
 
     Row(float x0_, float y_, float h_) : x0(x0_), y(y_), h(h_), x(x0_) {}
 
     void Advance(bool isLabel) {
-        if (!first) x += isLabel ? kLabelGap : kGap;
+        if (!first) x += !lines ? 8.f : (isLabel ? kLabelGap : kGap);
         first = false;
     }
     PopItem &Add(PopKind k, PopField f, float w, int index = 0) {
@@ -55,8 +56,7 @@ struct Row {
     }
     void Sep() {
         if (!lines) {
-            x += kGap + 10;
-            first = false;
+            if (!first) x += 8.f + 10.f;
             return;
         }
         items.push_back(MakeItem(PK_SEP, PF_NONE, RectF(x + 8, y + (h - 16) / 2, 1, 16)));
@@ -410,7 +410,15 @@ void DrawPopover(Canvas &c, const PopLayout &lay, float ox, float oy, const ls_s
         case PK_DASH: {
             bool on = IsOn(it, st);
             buttonBg(on);
-            c.Line(r.x + 6, r.b() - 6, r.r() - 6, r.y + 6, on ? u.iconActive : u.icon, 2, gfx::UiDashStroke());
+            // 2pt 平头虚线，线段 4 间隔 3（逻辑点，同 Mac setLineDash [4, 3]）。D2D 的虚线长度按线宽倍数计，
+            // 直接用 UiDashStroke（1pt 线的 4/3）会变成 8/6，这里逐段画
+            float x0 = r.x + 6, y0 = r.b() - 6, x1 = r.r() - 6, y1 = r.y + 6;
+            float len = std::sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+            float ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+            for (float t = 0; t < len; t += 7.f) {
+                float e = std::fmin(t + 4.f, len);
+                c.Line(x0 + ux * t, y0 + uy * t, x0 + ux * e, y0 + uy * e, on ? u.iconActive : u.icon, 2);
+            }
             break;
         }
         case PK_CHIP: {

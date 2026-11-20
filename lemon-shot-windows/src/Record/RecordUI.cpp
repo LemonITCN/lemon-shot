@@ -131,9 +131,16 @@ void DrawBarPanel(Canvas &c, RectF r, float radius) {
 namespace {
 const float kPadLeft = 14, kDot = 8;
 
+// 计时区宽度（同 Mac RecordBarWidget.clockWidth = ceil(样例宽) + 2）。Mac 用系统等宽数字字体（13pt 中粗：
+// 数字 8.31pt、冒号 4.03pt，即 0.639em / 0.31em），雅黑的数字更窄（"00:00" 约窄 4pt），控制条会因此比 Mac 窄。
+// 这里样例宽取「雅黑实测」与「按 Mac 字宽折算」的较大者，两端控制条同宽。
 float ClockWidth(const std::wstring &clock) {
-    const wchar_t *sample = clock.size() > 5 ? L"0:00:00" : L"00:00";
-    return std::ceil(gfx::Measure(sample, BodySize(), kMedium).w) + 2;
+    bool hours = clock.size() > 5;
+    const wchar_t *sample = hours ? L"0:00:00" : L"00:00";
+    float measured = gfx::Measure(sample, BodySize(), kMedium).w;
+    float digits = hours ? 5.f : 4.f, colons = hours ? 2.f : 1.f;
+    float mac = BodySize() * (digits * 0.639f + colons * 0.31f);
+    return std::ceil(measured > mac ? measured : mac) + 2;
 }
 
 float SepSpace() { return 2 * K().toolbar.separatorMargin + K().toolbar.separatorWidth; }

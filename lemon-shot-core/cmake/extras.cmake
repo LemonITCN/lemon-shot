@@ -80,6 +80,7 @@ function(lemonshot_add_extras target)
       set(${o} OFF CACHE BOOL "" FORCE)
     endforeach()
     add_subdirectory(${TP}/ncnn ${CMAKE_BINARY_DIR}/ncnn EXCLUDE_FROM_ALL)
+    target_compile_options(ncnn PRIVATE -w)  # 第三方源码的警告不看
     if(WIN32)
       # simpleomp 在 mingw 上要用 pthread_once，llvm-mingw 不带 winpthreads：用 InitOnceExecuteOnce 补一个
       target_compile_options(ncnn PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${LEMONSHOT_CORE_DIR}/cmake/ncnn_win32_once.h>")

@@ -39,4 +39,7 @@ set_property(SOURCE res/app.rc APPEND PROPERTY OBJECT_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/PP_OCRv5_mobile_det.ncnn.bin
   ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/PP_OCRv5_mobile_rec.ncnn.param
   ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/PP_OCRv5_mobile_rec.ncnn.bin
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/ppocrv5_dict.txt)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/ppocrv5_dict.txt
+  ${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico)
+file(GLOB LS_BRAND_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/resources/brand/*.png)
+set_property(SOURCE res/app.rc APPEND PROPERTY OBJECT_DEPENDS ${LS_BRAND_FILES})

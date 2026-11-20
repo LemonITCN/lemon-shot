@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8F2FF"/><stop offset="1" stop-color="#C6DCFF"/>
+    </linearGradient>
+    <linearGradient id="yellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF06A"/><stop offset="1" stop-color="#FFE73C"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7BE86C"/><stop offset="1" stop-color="#5AD94C"/>
+    </linearGradient>
+    <filter id="drop" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/><feOffset dy="12"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dy="12"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.2"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="plate" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="9"/><feOffset dy="8"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M284.3 100.0 H739.7 C841.4 100.0 924.0 182.6 924.0 284.3 V739.7 C924.0 841.4 841.4 924.0 739.7 924.0 H284.3 C182.6 924.0 100.0 841.4 100.0 739.7 V284.3 C100.0 182.6 182.6 100.0 284.3 100.0 Z" fill="url(#bg)" filter="url(#drop)"/>
+  <g transform="translate(250 236) scale(0.75)"><path d="M0 -34 C4 -8 8 -4 34 0 C8 4 4 8 0 34 C-4 8 -8 4 -34 0 C-8 -4 -4 -8 0 -34 Z" fill="#FFFFFF"/></g>
+  <g transform="translate(316 182) scale(0.38)"><path d="M0 -34 C4 -8 8 -4 34 0 C8 4 4 8 0 34 C-4 8 -8 4 -34 0 C-8 -4 -4 -8 0 -34 Z" fill="#FFFFFF"/></g>
+
+  <g transform="translate(478 506) rotate(45) scale(1.1)" filter="url(#soft)">
+    <!-- 把手：D 形，外侧圆弧、内侧直边相对 -->
+    <g>
+      <mask id="holeL" maskUnits="userSpaceOnUse" x="-400" y="-400" width="800" height="800">
+        <rect x="-400" y="-400" width="800" height="800" fill="#FFFFFF"/>
+        <path d="M-83.0 163.0 A6.0 35.0 0 0 0 -89.0 198.0 A6.0 35.0 0 0 0 -83.0 233.0 Z" fill="#000000" stroke="#000000" stroke-width="36" stroke-linejoin="round"/>
+      </mask>
+      <g mask="url(#holeL)">
+        <path d="M0 0 L-34 112" stroke="#38B42E" stroke-width="72" stroke-linecap="round" fill="none"/>
+        <path d="M-48.0 128.0 A76.0 70.0 0 0 0 -124.0 198.0 A76.0 70.0 0 0 0 -48.0 268.0 Z" fill="#38B42E" stroke="#38B42E" stroke-width="62" stroke-linejoin="round"/>
+        <path d="M0 0 L-34 112" stroke="url(#green)" stroke-width="58" stroke-linecap="round" fill="none"/>
+        <path d="M-48.0 128.0 A76.0 70.0 0 0 0 -124.0 198.0 A76.0 70.0 0 0 0 -48.0 268.0 Z" fill="url(#green)" stroke="url(#green)" stroke-width="48" stroke-linejoin="round"/>
+        <path d="M-76.0 156.0 A20.0 42.0 0 0 0 -96.0 198.0 A20.0 42.0 0 0 0 -76.0 240.0 Z" fill="#38B42E" stroke="#38B42E" stroke-width="36" stroke-linejoin="round"/>
+      </g>
+      <path d="M-43.0 123.0 A86.0 75.0 0 0 0 -129.0 198.0 A86.0 75.0 0 0 0 -43.0 273.0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="11" stroke-linecap="round"
+            stroke-dasharray="70 1000" stroke-dashoffset="-18"/></g>
+    <g>
+      <mask id="holeR" maskUnits="userSpaceOnUse" x="-400" y="-400" width="800" height="800">
+        <rect x="-400" y="-400" width="800" height="800" fill="#FFFFFF"/>
+        <path d="M83.0 163.0 A6.0 35.0 0 0 1 89.0 198.0 A6.0 35.0 0 0 1 83.0 233.0 Z" fill="#000000" stroke="#000000" stroke-width="36" stroke-linejoin="round"/>
+      </mask>
+      <g mask="url(#holeR)">
+        <path d="M0 0 L34 112" stroke="#38B42E" stroke-width="72" stroke-linecap="round" fill="none"/>
+        <path d="M48.0 128.0 A76.0 70.0 0 0 1 124.0 198.0 A76.0 70.0 0 0 1 48.0 268.0 Z" fill="#38B42E" stroke="#38B42E" stroke-width="62" stroke-linejoin="round"/>
+        <path d="M0 0 L34 112" stroke="url(#green)" stroke-width="58" stroke-linecap="round" fill="none"/>
+        <path d="M48.0 128.0 A76.0 70.0 0 0 1 124.0 198.0 A76.0 70.0 0 0 1 48.0 268.0 Z" fill="url(#green)" stroke="url(#green)" stroke-width="48" stroke-linejoin="round"/>
+        <path d="M76.0 156.0 A20.0 42.0 0 0 1 96.0 198.0 A20.0 42.0 0 0 1 76.0 240.0 Z" fill="#38B42E" stroke="#38B42E" stroke-width="36" stroke-linejoin="round"/>
+      </g>
+      <path d="M43.0 123.0 A86.0 75.0 0 0 1 129.0 198.0 A86.0 75.0 0 0 1 43.0 273.0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.65" stroke-width="11" stroke-linecap="round"
+            stroke-dasharray="70 1000" stroke-dashoffset="-18"/></g>
+    <g transform="rotate(-13)">
+      <path d="M6 44 L6 -244 C6 -280 -26 -290 -40 -262 C-72 -196 -84 -70 -66 20 C-58 52 -22 62 6 44 Z" fill="url(#yellow)" stroke="#E9B40C" stroke-width="13" stroke-linejoin="round"/>
+      <path d="M-24 -70 C-30 -140 -32 -196 -28 -232" fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="12" stroke-linecap="round"/></g>
+    <g transform="rotate(13)">
+      <path d="M-6 44 L-6 -244 C-6 -280 26 -290 40 -262 C72 -196 84 -70 66 20 C58 52 22 62 -6 44 Z" fill="url(#yellow)" stroke="#E9B40C" stroke-width="13" stroke-linejoin="round"/>
+      <path d="M24 -70 C30 -140 32 -196 28 -232" fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="12" stroke-linecap="round"/></g>
+    <!-- 转轴螺丝 -->
+    <circle r="30" fill="#FFFFFF" stroke="#E9B40C" stroke-width="12"/>
+    <circle r="10" fill="#E9B40C"/>
+  </g>
+
+  <g filter="url(#plate)">
+    <circle cx="782" cy="782" r="98" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(689.86 689.86) scale(0.17996)">
+<path d="M647.77 942.60 A451.50 451.50 0 1 1 822.79 839.51" fill="none" stroke="#FFE73C" stroke-width="75" stroke-linecap="round"/>
+<path d="M578.00 512.00 L840.70 360.33 A362.00 362.00 0 0 1 840.70 663.67 Z" fill="#FFE73C" stroke="#FFE73C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M545.00 569.16 L807.70 720.83 A362.00 362.00 0 0 1 545.00 872.49 Z" fill="#5AD94C" stroke="#5AD94C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M479.00 569.16 L479.00 872.49 A362.00 362.00 0 0 1 216.30 720.83 Z" fill="#FFE73C" stroke="#FFE73C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M446.00 512.00 L183.30 663.67 A362.00 362.00 0 0 1 183.30 360.33 Z" fill="#FFE73C" stroke="#FFE73C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M479.00 454.84 L216.30 303.17 A362.00 362.00 0 0 1 479.00 151.51 Z" fill="#FFE73C" stroke="#FFE73C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M545.00 454.84 L545.00 151.51 A362.00 362.00 0 0 1 807.70 303.17 Z" fill="#FFE73C" stroke="#FFE73C" stroke-width="28" stroke-linejoin="round"/>
+<path d="M662.28 806.29 L738.28 937.92 L767.72 920.92 L691.72 789.29 Z" fill="#5AD94C" stroke="#5AD94C" stroke-width="16" stroke-linejoin="round"/>
+  </g>
+</svg>

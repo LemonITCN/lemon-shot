@@ -132,16 +132,27 @@ enum Icons {
         ctx.restoreGState()
     }
 
-    /// 菜单栏图标（spec 12）：取景框四角折线（icons.json 的 scan）+ 中心圆点，模板图随系统深浅色。
+    /// 菜单栏图标（spec 12）：剪刀单色剪影（brand/glyph-18.png 与 @2x 的 glyph-36.png），模板图随系统深浅色。
+    /// 与 Windows 托盘同一形状；资源缺失时退回取景框加中心圆点。
     static func statusBarImage(size: CGFloat = 18) -> NSImage {
-        let img = NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
-            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            let black = CGColor(gray: 0, alpha: 1)
-            draw(ctx, "scan", in: rect, color: black, lineWidth: 1.6)
-            let r = size / 24 * 2.6
-            ctx.setFillColor(black)
-            ctx.fillEllipse(in: CGRect(x: rect.midX - r, y: rect.midY - r, width: 2 * r, height: 2 * r))
-            return true
+        let img = NSImage(size: NSSize(width: size, height: size))
+        for px in [18, 36] {
+            if let data = try? Data(contentsOf: Resources.url("brand/glyph-\(px).png")),
+               let rep = NSBitmapImageRep(data: data) {
+                rep.size = NSSize(width: size, height: size)
+                img.addRepresentation(rep)
+            }
+        }
+        if img.representations.isEmpty {
+            return NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
+                guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+                let black = CGColor(gray: 0, alpha: 1)
+                draw(ctx, "scan", in: rect, color: black, lineWidth: 1.6)
+                let r = size / 24 * 2.6
+                ctx.setFillColor(black)
+                ctx.fillEllipse(in: CGRect(x: rect.midX - r, y: rect.midY - r, width: 2 * r, height: 2 * r))
+                return true
+            }.withTemplate()
         }
         img.isTemplate = true
         return img
@@ -157,4 +168,8 @@ enum Icons {
         img.isTemplate = template
         return img
     }
+}
+
+private extension NSImage {
+    func withTemplate() -> NSImage { isTemplate = true; return self }
 }

@@ -37,8 +37,8 @@ float StepperWidth();
 void DrawStepper(Canvas &c, RectF r, const std::wstring &value, int hoverPart, CtrlState st);
 int StepperHit(RectF r, float x, float y);
 
-float ButtonWidth(const std::wstring &text);
-void DrawButton(Canvas &c, RectF r, const std::wstring &text, bool primary, CtrlState st);
+float ButtonWidth(const std::wstring &text, const char *icon = nullptr);
+void DrawButton(Canvas &c, RectF r, const std::wstring &text, bool primary, CtrlState st, const char *icon = nullptr);
 void DrawIconButton(Canvas &c, RectF r, const char *icon, float iconSize, bool selected, CtrlState st);
 
 void DrawSwatch(Canvas &c, float cx, float cy, float d, Color color, bool selected, bool hover);
@@ -47,6 +47,8 @@ void DrawInfoIcon(Canvas &c, float cx, float cy, float size, CtrlState st);
 
 // 气泡（深色提示底）：宽度自适应，maxWidth 时换行；返回绘制尺寸
 RectF MeasureBubble(const std::wstring &text, float maxWidth);
+// 截图工具栏的单行提示气泡：高固定 capture.tipHeight
+RectF MeasureTip(const std::wstring &text);
 void DrawBubble(Canvas &c, RectF r, const std::wstring &text);
 
 // 弹出面板底板：阴影 + popoverBg + 细边

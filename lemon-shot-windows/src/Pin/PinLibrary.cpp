@@ -131,7 +131,7 @@ RectF CardRect(float w, int i, float scrollY) {
 RectF TrashRect(RectF card) { return RectF(card.r() - 30, card.y + 6, 24, 24); }
 
 RectF ClearRect(float w) {
-    float bw = ui::ButtonWidth(T("pin.libraryClear"));
+    float bw = ui::ButtonWidth(T("pin.libraryClear"), "trash-2");
     float ch = theme::Tok().window.controlHeight;
     return RectF(w - kPad - bw, (kHeader - ch) / 2, bw, ch);
 }
@@ -189,7 +189,7 @@ void Draw(Canvas &c, float w, float h, const std::vector<Thumb> &thumbs, const V
     ui::CtrlState cs;
     cs.hover = v.hoverClear;
     cs.disabled = v.count == 0;
-    ui::DrawButton(c, ClearRect(w), T("pin.libraryClear"), false, cs);
+    ui::DrawButton(c, ClearRect(w), T("pin.libraryClear"), false, cs, "trash-2");  // 同 Mac：带 trash-2 图标
 }
 
 namespace {

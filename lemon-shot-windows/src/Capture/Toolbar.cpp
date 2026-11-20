@@ -156,7 +156,7 @@ int HitToolbar(const ToolbarLayout &lay, float x, float y) {
 
 RectF ToolbarTooltipRect(RectF btn, const std::wstring &text, bool below, float screenW, float screenH) {
     // 按钮正下方居中（工具栏在选区上方时正上方），与工具栏边缘间距 6pt（spec 2.3）
-    RectF sz = ui::MeasureBubble(text, 320);
+    RectF sz = ui::MeasureTip(text);
     const auto &tb = theme::Tok().toolbar;
     float inset = (tb.height - tb.button) / 2;  // 按钮到工具栏上下边缘
     float gap = 6;

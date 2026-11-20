@@ -25,6 +25,9 @@
 #include "UI/Gfx.h"
 #include "UI/Window.h"
 #include "Util/Api.h"
+#include "Util/ImageIO.h"
+#include "Util/Resources.h"
+#include "../../res/resource.h"
 #include "Util/Log.h"
 #include "Util/Util.h"
 
@@ -283,38 +286,16 @@ void PlayShutter() {
         PlaySoundW(L"SystemAsterisk", nullptr, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
 }
 
-HICON AppIcon(int size) {
-    bool tray = size < 0;
-    if (tray) size = -size;
-    if (size <= 0) size = 16;
-    Offscreen off;
-    if (!off.Create(size, size, 1.f)) return nullptr;
-    ID2D1RenderTarget *rt = off.RT();
-    rt->BeginDraw();
-    {
-        Canvas c(rt);
-        c.Clear(Color{0, 0, 0, 0});
-        float s = (float)size;
-        if (tray) {
-            Color col = theme::SystemTaskbarDark() ? Color{1, 1, 1, 1} : Color{0.11f, 0.11f, 0.12f, 1};
-            float stroke = s / 10.f < 1.25f ? 1.25f : s / 10.f;
-            c.Icon("scan", s / 2, s / 2, s, col, stroke);
-            c.FillEllipse(s / 2, s / 2, s * 0.12f, s * 0.12f, col);
-        } else {
-            // 与关于页、Mac 端应用图标同一设计：accent 圆角方底 + 白色取景框 + 中心圆点
-            c.FillRound(RectF(0, 0, s, s), s * 0.225f, theme::Tok().light.accent);
-            c.Icon("scan", s / 2, s / 2, s * 0.6f, Color{1, 1, 1, 1}, s / 24.f * 1.9f);
-            c.Icon("circle-dot", s / 2, s / 2, s * 0.28f, Color{1, 1, 1, 1}, s / 24.f * 1.5f);
-        }
-    }
-    if (FAILED(rt->EndDraw(nullptr, nullptr))) return nullptr;
-    ls_image img;
-    if (!off.ReadPixels(img)) return nullptr;
+namespace {
+
+// 预乘 BGRA 位图 → HICON（图标位图要直通 alpha）
+HICON IconFromImage(const ls_image &img) {
+    const int w = img.width, h = img.height;
     BITMAPV5HEADER bi;
     std::memset(&bi, 0, sizeof bi);
     bi.bV5Size = sizeof bi;
-    bi.bV5Width = size;
-    bi.bV5Height = -size;
+    bi.bV5Width = w;
+    bi.bV5Height = -h;
     bi.bV5Planes = 1;
     bi.bV5BitCount = 32;
     bi.bV5Compression = BI_BITFIELDS;
@@ -329,18 +310,17 @@ HICON AppIcon(int size) {
     HICON icon = nullptr;
     if (color && bits) {
         uint8_t *d = (uint8_t *)bits;
-        for (int y = 0; y < size; ++y) {
+        for (int y = 0; y < h; ++y) {
             const uint8_t *src = img.data + (size_t)y * img.stride;
-            for (int x = 0; x < size; ++x, src += 4, d += 4) {
+            for (int x = 0; x < w; ++x, src += 4, d += 4) {
                 uint8_t a = src[3];
-                // 图标用直通 alpha
                 d[0] = a ? (uint8_t)((src[0] * 255 + a / 2) / a) : 0;
                 d[1] = a ? (uint8_t)((src[1] * 255 + a / 2) / a) : 0;
                 d[2] = a ? (uint8_t)((src[2] * 255 + a / 2) / a) : 0;
                 d[3] = a;
             }
         }
-        HBITMAP mask = CreateBitmap(size, size, 1, 1, nullptr);
+        HBITMAP mask = CreateBitmap(w, h, 1, 1, nullptr);
         ICONINFO ii;
         std::memset(&ii, 0, sizeof ii);
         ii.fIcon = TRUE;
@@ -350,6 +330,54 @@ HICON AppIcon(int size) {
         if (mask) DeleteObject(mask);
     }
     if (color) DeleteObject(color);
+    return icon;
+}
+
+// 选不小于 size 的最小一张单色剪影（没有就取最大的）
+int GlyphResource(int size) {
+    static const int sizes[] = {16, 18, 20, 24, 32, 36, 40, 48};
+    static const int ids[] = {IDR_GLYPH_16, IDR_GLYPH_18, IDR_GLYPH_20, IDR_GLYPH_24,
+                              IDR_GLYPH_32, IDR_GLYPH_36, IDR_GLYPH_40, IDR_GLYPH_48};
+    for (int i = 0; i < 8; ++i)
+        if (sizes[i] >= size) return ids[i];
+    return IDR_GLYPH_48;
+}
+
+}  // namespace
+
+HICON AppIcon(int size) {
+    bool tray = size < 0;
+    if (tray) size = -size;
+    if (size <= 0) size = 16;
+    if (!tray) {
+        // 应用图标：exe 里的多尺寸 .ico，系统挑最接近的一张（16–48 是简化版，64 以上是完整版）
+        return (HICON)LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP), IMAGE_ICON, size, size, LR_DEFAULTCOLOR);
+    }
+    // 托盘：剪刀单色剪影，按任务栏深浅着成白色或近黑色（与 Mac 菜单栏模板图同一形状）
+    std::string png = LoadResourceData(GlyphResource(size));
+    ls_image src;
+    std::memset(&src, 0, sizeof src);
+    if (png.empty() || !DecodeImage(png.data(), png.size(), src)) return nullptr;
+    ls_image img = src;
+    if (src.width != size || src.height != size) {
+        if (ls_image_resize(&src, size, size, &img) != 0) {
+            ls_image_free(&src);
+            return nullptr;
+        }
+        ls_image_free(&src);
+    }
+    const bool dark = theme::SystemTaskbarDark();
+    const uint8_t r = dark ? 255 : 28, g = dark ? 255 : 28, b = dark ? 255 : 31;
+    for (int y = 0; y < img.height; ++y) {
+        uint8_t *p = img.data + (size_t)y * img.stride;
+        for (int x = 0; x < img.width; ++x, p += 4) {
+            const unsigned a = p[3];
+            p[0] = (uint8_t)((b * a + 127) / 255);
+            p[1] = (uint8_t)((g * a + 127) / 255);
+            p[2] = (uint8_t)((r * a + 127) / 255);
+        }
+    }
+    HICON icon = IconFromImage(img);
     ls_image_free(&img);
     return icon;
 }

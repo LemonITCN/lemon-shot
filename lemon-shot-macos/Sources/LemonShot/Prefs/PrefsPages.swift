@@ -419,15 +419,23 @@ final class CenteredRow: Widget {
     }
 }
 
-/// 应用图标（矢量自绘）：accent 圆角方底 + 白色取景框图标。
+/// 应用图标：画 brand/app-icon.png（与 .icns、Windows .ico 同一设计稿导出）。
 enum AppIcon {
+    private static let image: CGImage? = {
+        guard let data = try? Data(contentsOf: Resources.url("brand/app-icon.png")),
+              let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(src, 0, nil)
+    }()
+
     static func draw(_ ctx: CGContext, _ r: CGRect) {
+        guard let img = image else { return }
         ctx.saveGState()
-        Draw.setShadow(ctx, offsetY: 3, blur: 10, color: CGColor(gray: 0, alpha: 0.25))
-        Draw.fill(ctx, r, Theme.tokenColor("color.light.accent"), radius: r.width * 0.225)
+        ctx.interpolationQuality = .high
+        // 图标位图是自上而下的，翻转坐标系里要倒过来画
+        ctx.translateBy(x: r.minX, y: r.maxY)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(img, in: CGRect(x: 0, y: 0, width: r.width, height: r.height))
         ctx.restoreGState()
-        Icons.draw(ctx, "scan", in: r.insetBy(dx: r.width * 0.2, dy: r.width * 0.2), color: CGColor(gray: 1, alpha: 1), lineWidth: r.width / 24 * 1.9)
-        Icons.draw(ctx, "circle-dot", in: r.insetBy(dx: r.width * 0.36, dy: r.width * 0.36), color: CGColor(gray: 1, alpha: 1), lineWidth: r.width / 24 * 1.5)
     }
 }
 

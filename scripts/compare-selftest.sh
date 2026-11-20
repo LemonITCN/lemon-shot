@@ -4,7 +4,7 @@
 set -euo pipefail
 MAC="$1"; WIN="$2"; OUT="$3"
 mkdir -p "$OUT/mac" "$OUT/win" "$OUT/diff"
-python3 -I - "$MAC" "$WIN" "$OUT" <<'PY'
+python3 -P - "$MAC" "$WIN" "$OUT" <<'PY'
 import os, sys, html, shutil
 mac, win, out = sys.argv[1:4]
 try:

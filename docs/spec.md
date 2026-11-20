@@ -32,6 +32,7 @@
 - 图标：只用 `icons.json`。描边宽 = `toolbar.iconStroke`（按 24 网格缩放到实际尺寸后的逻辑宽度），颜色 `icon`，激活 `iconActive`。不用 emoji，不用系统图标。
 - 界面原则：标题 + 控件为主，不堆说明文字；需要说明的放一个 `info` 图标，悬停或点击显示气泡。
 - 所有自绘控件两端尺寸、颜色、圆角完全按 `tokens.json`。
+- 阴影：tokens 里的 `shadowBlur` 一律按 CSS box-shadow 的模糊半径理解（高斯 σ = shadowBlur / 2），颜色 `shadow`，向下偏移 `shadowOffsetY`。Mac 的 `CALayer.shadowRadius` = shadowBlur / 2；Windows 自己做高斯模糊时 σ = shadowBlur / 2。工具栏、样式面板、录屏设置面板与控制条、长截图面板、贴图、录音面板都由程序自己画阴影（不用系统窗口阴影），两端一致；toast 与深色提示气泡不画阴影。
 
 ### 1.1 自测截图（两端必须实现）
 
@@ -210,7 +211,7 @@
 - 来源：截图工具栏「贴图」；全局快捷键 `pinClipboard`（剪贴板图片直接贴；文字先排版渲染成图，最大宽 600pt，`surface` 底 + 12pt 内边距，字 13pt。Mac 保留富文本格式，Windows 按纯文字排版）；贴图库。剪贴板没有可贴内容时 toast `pin.noClipboard`。
 - 窗口：无边框置顶，初始位置 = 截图原位置（剪贴板贴图在光标处）。圆角 `pin.cornerRadius`（`pin.corners`），阴影（`pin.shadow`），1pt 边框（活动 `activeBorder`，非活动 `inactiveBorder`）。
 - 操作：拖动移动；滚轮缩放（以光标为中心，步长 `zoomStep`，范围 `zoomMin–zoomMax`），缩放时中间显示百分比 1 秒；主修饰键+滚轮调透明度（步长 `opacityStep`，最低 0.1）；方向键移动 1 像素（Shift 10 像素）；双击关闭（`doubleClickCloses`）；Esc 关闭；主修饰键+C 复制，主修饰键+S 保存。
-- 悬停按钮（`showButtons`）：右上角浮出 `copy` `download` `pencil`（标注）`x` 四个小按钮（24pt）。
+- 悬停按钮（`showButtons`）：右上角浮出一个深色胶囊（`tipBg` 底，圆角 = 高度一半，距贴图上、右边缘各 8pt），里面并排 `copy` `download` `pencil`（标注）`x` 四个 24pt 按钮，图标 16pt 白色，悬停按钮底色白色 15% 透明。
 - 右键菜单：复制、保存、标注、文字识别、不透明度（子菜单 100/80/60/40/20%）、缩放（原始大小/50%/200%）、向左旋转、向右旋转、水平翻转、垂直翻转、圆角、阴影、在所有桌面显示、关闭、关闭全部贴图、隐藏全部贴图。
 - 标注：在贴图窗内开一个 `lock_selection` 会话，工具栏贴在贴图下方，完成后替换贴图内容。
 - 全局 `togglePins`：隐藏/显示全部。

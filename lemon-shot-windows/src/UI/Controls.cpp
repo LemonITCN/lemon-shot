@@ -1,5 +1,7 @@
 #include "UI/Controls.h"
 
+#include <cmath>
+
 namespace ls {
 namespace ui {
 
@@ -161,24 +163,38 @@ int StepperHit(RectF r, float x, float y) {
     return 0;
 }
 
-float ButtonWidth(const std::wstring &text) {
-    return gfx::Measure(text, K().fontSize.body, kRegular).w + K().window.buttonPaddingX * 2;
+// 按钮同 Mac ButtonW：中粗正文字，普通按钮 inputBorder 边；带图标时宽度多 22（16pt 图标 + 6 间距），图标与文字整体居中
+float ButtonWidth(const std::wstring &text, const char *icon) {
+    float w = gfx::Measure(text, K().fontSize.body, kMedium).w + K().window.buttonPaddingX * 2;
+    if (icon) w += 22;
+    return std::ceil(w);
 }
 
-void DrawButton(Canvas &c, RectF r, const std::wstring &text, bool primary, CtrlState st) {
+void DrawButton(Canvas &c, RectF r, const std::wstring &text, bool primary, CtrlState st, const char *icon) {
     const auto &u = U();
     float rad = K().window.controlRadius;
+    Color tc;
     if (primary) {
         Color bg = st.hover || st.pressed ? u.accentHover : u.accent;
         if (st.disabled) bg = WithAlpha(bg, 0.5f);
         c.FillRound(r, rad, bg);
-        c.Text(text, r, BodyText(u.accentText, HAlign::Center));
+        tc = u.accentText;
     } else {
         Color bg = st.pressed ? u.surfacePressed : (st.hover ? u.surfaceHover : u.surface);
         c.FillRound(r, rad, bg);
-        c.StrokeRound(r.Inflate(-0.5f), rad - 0.5f, u.border, 1);
-        c.Text(text, r, BodyText(st.disabled ? u.textTertiary : u.text, HAlign::Center));
+        c.StrokeRound(r.Inflate(-0.5f), rad - 0.5f, u.inputBorder, 1);
+        tc = st.disabled ? u.textTertiary : u.text;
     }
+    float tw = gfx::Measure(text, K().fontSize.body, kMedium).w;
+    float x = r.cx() - tw / 2;
+    if (icon) {
+        x = r.cx() - (tw + 22) / 2;
+        c.Icon(icon, x + 8, r.cy(), 16, tc, 1.6f);
+        x += 22;
+    }
+    TextStyle ts = BodyText(tc);
+    ts.weight = kMedium;
+    c.Text(text, RectF(x, r.y, tw + 2, r.h), ts);
 }
 
 void DrawIconButton(Canvas &c, RectF r, const char *icon, float iconSize, bool selected, CtrlState st) {
@@ -209,13 +225,19 @@ void DrawInfoIcon(Canvas &c, float cx, float cy, float size, CtrlState st) {
 }
 
 RectF MeasureBubble(const std::wstring &text, float maxWidth) {
+    // 同 Mac BubbleWidget(.tooltip)：左右 8、上下 5，宽高向上取整
     float pad = K().capture.tipPaddingX;
     float size = K().fontSize.caption + 1;
     gfx::TextSize ts = gfx::Measure(text, size, kRegular, false, 100000.f);
     if (ts.w > maxWidth - pad * 2) ts = gfx::Measure(text, size, kRegular, false, maxWidth - pad * 2);
-    float h = ts.h + 12;
-    if (h < K().capture.tipHeight) h = K().capture.tipHeight;
-    return RectF(0, 0, ts.w + pad * 2 + 1, h);
+    return RectF(0, 0, std::ceil(ts.w + pad * 2), std::ceil(ts.h + 10));
+}
+
+RectF MeasureTip(const std::wstring &text) {
+    // 同 Mac CaptureRender.tooltipSize：单行，宽 ceil(文字宽 + 16)，高固定 tipHeight（24）
+    float pad = K().capture.tipPaddingX;
+    float w = gfx::Measure(text, K().fontSize.caption + 1, kRegular).w;
+    return RectF(0, 0, std::ceil(w + pad * 2), K().capture.tipHeight);
 }
 
 void DrawBubble(Canvas &c, RectF r, const std::wstring &text) {

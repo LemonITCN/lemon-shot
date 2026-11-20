@@ -201,15 +201,16 @@ final class ShellWindowController: ToolWindowController {
 
     // MARK: 自测
 
-    /// 自测（额外输出，不在契约状态表里）：一个机型的预览窗口。
-    static func render(scale: CGFloat, shot: CGImage, model: String, background: String) -> CGImage? {
+    /// 自测：预览窗口离屏渲染。契约状态 `shell` 用「自动匹配 → 通用笔记本 + 透明背景」（与 Windows 同一场景），
+    /// x-shell-* 核对图逐个机型出。
+    static func render(scale: CGFloat, shot: CGImage, model: String, background: String, auto: ShellModel = .macbookPro14) -> CGImage? {
         let size = ShellContent.size
-        let c = ShellContent(autoModel: .macbookPro14)
+        let c = ShellContent(autoModel: auto)
         c.list.selected = model
         c.background.selectedIndex = ShellContent.backgrounds.firstIndex(of: background) ?? 0
         c.frame = CGRect(origin: .zero, size: size)
         c.layout()
-        let m = model == "auto" ? ShellModel.macbookPro14 : (ShellModel(rawValue: model) ?? .laptop)
+        let m = model == "auto" ? auto : (ShellModel(rawValue: model) ?? .laptop)
         c.preview.image = ShellRenderer.render(shot, model: m, background: background)
         return Offscreen.render(size: size, scale: scale) { ctx in
             Draw.fill(ctx, CGRect(origin: .zero, size: size), Theme.color("windowBg"))

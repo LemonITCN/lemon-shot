@@ -17,7 +17,10 @@
 #include "Settings/Settings.h"
 #include "UI/Controls.h"
 #include "UI/Window.h"
+#include "Util/ImageIO.h"
+#include "Util/Resources.h"
 #include "Util/Util.h"
+#include "../../res/resource.h"
 
 namespace ls {
 namespace prefs {
@@ -858,13 +861,18 @@ void StyleRowW::OnMouseUp(float, float, bool) { pressedItem = -1; }
 
 // ---------------------------------------------------------------- 关于
 
+// 应用图标：画 brand/app-icon.png（与 .ico、Mac .icns 同一设计稿导出，Mac 关于页画的是同一张图）
 void DrawAppIcon(Canvas &c, RectF r) {
-    c.Shadow(r, r.w * 0.225f, 10, 3, Color{0, 0, 0, 0.25f});
-    c.FillRound(r, r.w * 0.225f, K().light.accent);
-    RectF a = r.Inflate(-r.w * 0.2f);
-    c.Icon("scan", a.cx(), a.cy(), a.w, Color{1, 1, 1, 1}, r.w / 24.f * 1.9f);
-    RectF b = r.Inflate(-r.w * 0.36f);
-    c.Icon("circle-dot", b.cx(), b.cy(), b.w, Color{1, 1, 1, 1}, r.w / 24.f * 1.5f);
+    static ls_image img = [] {
+        ls_image im;
+        std::memset(&im, 0, sizeof im);
+        std::string png = LoadResourceData(IDR_BRAND_APP_ICON);
+        if (!png.empty()) DecodeImage(png.data(), png.size(), im);
+        return im;
+    }();
+    if (!img.data) return;
+    ComPtr<ID2D1Bitmap> bmp = gfx::CreateBitmap(c.RT(), img);
+    if (bmp) c.Bitmap(bmp.Get(), r, nullptr);
 }
 
 void AboutW::Draw(Canvas &c) {

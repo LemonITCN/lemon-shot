@@ -29,7 +29,9 @@ namespace pins {
 
 namespace {
 
-const float kBtn = 24, kBtnGap = 4, kBtnInset = 6;
+// 悬停按钮（spec 3）：右上角深色胶囊（tipBg，圆角 = 高度一半），距贴图上、右边缘各 8pt；
+// 胶囊里四个 24pt 按钮并排、四周各留 4pt（同 Mac PinWidget.buttonsRect），图标 16pt 白色
+const float kBtn = 24, kBtnPad = 4, kBtnInset = 8, kBtnIcon = 16;
 const char *kBtnIcons[4] = {"copy", "download", "pencil", "x"};
 enum { TIMER_ZOOM = 1 };
 enum {
@@ -59,10 +61,14 @@ enum {
 
 float Margin() { return theme::Tok().pin.shadowBlur + theme::Tok().pin.shadowOffsetY; }
 
+RectF ButtonsCapsule(RectF img) {
+    float w = 4 * kBtn + 2 * kBtnPad, h = kBtn + 2 * kBtnPad;
+    return RectF(img.r() - kBtnInset - w, img.y + kBtnInset, w, h);
+}
+
 RectF ButtonRect(RectF img, int i) {
-    float right = img.r() - kBtnInset;
-    float x = right - (4 - i) * kBtn - (3 - i) * kBtnGap;
-    return RectF(x, img.y + kBtnInset, kBtn, kBtn);
+    RectF cap = ButtonsCapsule(img);
+    return RectF(cap.x + kBtnPad + (float)i * kBtn, cap.y + kBtnPad, kBtn, kBtn);
 }
 
 // 贴图窗内容（屏幕与自测共用）
@@ -70,7 +76,7 @@ void DrawPin(Canvas &c, ID2D1Bitmap *bmp, RectF ir, bool corners, bool shadow, b
              const std::wstring &zoomText) {
     const auto &pt = theme::Tok().pin;
     float radius = corners ? (float)settings::Num("pin.cornerRadius") : 0.f;
-    if (shadow) c.Shadow(ir, radius, pt.shadowBlur, pt.shadowOffsetY, theme::Tok().light.shadow);
+    if (shadow) c.Shadow(ir, radius, pt.shadowBlur, pt.shadowOffsetY, theme::Ui().shadow);
     if (bmp) {
         if (radius > 0) {
             ComPtr<ID2D1RoundedRectangleGeometry> g;
@@ -86,23 +92,26 @@ void DrawPin(Canvas &c, ID2D1Bitmap *bmp, RectF ir, bool corners, bool shadow, b
     c.StrokeRound(ir.Inflate(pt.borderWidth / 2), radius > 0 ? radius + pt.borderWidth / 2 : 0,
                   active ? pt.activeBorder : pt.inactiveBorder, pt.borderWidth);
     if (buttons) {
+        RectF cap = ButtonsCapsule(ir);
+        c.FillRound(cap, cap.h / 2, theme::Cap().tipBg);
         for (int i = 0; i < 4; ++i) {
             RectF b = ButtonRect(ir, i);
-            c.FillRound(b, 6, theme::Cap().tipBg);
-            if (hoverBtn == i) c.FillRound(b, 6, Color{1, 1, 1, 0.18f});
-            c.Icon(kBtnIcons[i], b.cx(), b.cy(), 14, Color{1, 1, 1, 1}, 1.75f);
+            // 悬停底色白色 15%，圆角同 Mac IconButton（radius 6）
+            if (hoverBtn == i) c.FillRound(b, 6, Color{1, 1, 1, 0.15f});
+            c.Icon(kBtnIcons[i], b.cx(), b.cy(), kBtnIcon, Color{1, 1, 1, 1}, 1.75f);
         }
     }
     if (!zoomText.empty()) {
+        // 缩放百分比：同 Mac PinWidget（15pt 半粗等宽数字，高 32，左右各 12，圆角 8）
         TextStyle ts;
-        ts.size = theme::Tok().fontSize.body;
-        ts.weight = kMedium;
-        ts.color = Color{1, 1, 1, 1};
+        ts.size = 15;
+        ts.weight = kSemibold;
+        ts.color = theme::Cap().tipText;
         ts.h = HAlign::Center;
         ts.tabular = true;
-        float w = gfx::Measure(zoomText, ts.size, kMedium).w + 24;
+        float w = gfx::Measure(zoomText, ts.size, kSemibold).w + 24;
         RectF z(ir.cx() - w / 2, ir.cy() - 16, w, 32);
-        c.FillRound(z, 16, theme::Cap().tipBg);
+        c.FillRound(z, 8, theme::Cap().tipBg);
         c.Text(zoomText, z, ts);
     }
 }

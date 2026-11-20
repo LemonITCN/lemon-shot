@@ -415,23 +415,132 @@ void Canvas::Icon(const char *name, float cx, float cy, float size, Color c, flo
     SetTransform(old);
 }
 
-void Canvas::Shadow(RectF r, float radius, float blur, float offsetY, Color c) {
-    if (blur <= 0 || c.a <= 0) return;
-    // 从内缩 blur/4 到外扩 blur 共 n 层，每层同样的透明度叠加 → 外侧线性衰减，内部接近 c.a
-    int n = (int)(blur / 2.f);
-    if (n < 4) n = 4;
-    if (n > 10) n = 10;
-    float per = 1.f - std::pow(1.f - (c.a > 0.99f ? 0.99f : c.a), 1.f / (float)n);
-    Color lc{c.r, c.g, c.b, per};
-    for (int i = 0; i < n; ++i) {
-        float t = (float)i / (float)(n - 1);
-        float grow = -blur * 0.25f + t * blur * 1.25f;
-        RectF rr = r.Offset(0, offsetY).Inflate(grow);
-        if (rr.Empty()) continue;
-        float rad = radius + grow;
-        if (rad < 0) rad = 0;
-        FillRound(rr, rad, lc);
+namespace {
+
+// 圆角矩形 [0,w]×[0,h]（半径 rad）对格子 [x0,x1]×[y0,y1] 的覆盖率。不碰圆角的格子直接是 1，圆角处 8×8 超采样。
+float RoundRectCoverage(float w, float h, float rad, float x0, float y0, float x1, float y1) {
+    bool cornerX = x0 < rad || x1 > w - rad;
+    bool cornerY = y0 < rad || y1 > h - rad;
+    if (rad <= 0 || !cornerX || !cornerY) return 1.f;
+    const int N = 8;
+    int in = 0;
+    for (int sy = 0; sy < N; ++sy) {
+        float py = y0 + (y1 - y0) * ((float)sy + 0.5f) / N;
+        float dy = py < rad ? rad - py : (py > h - rad ? py - (h - rad) : 0.f);
+        for (int sx = 0; sx < N; ++sx) {
+            float px = x0 + (x1 - x0) * ((float)sx + 0.5f) / N;
+            float dx = px < rad ? rad - px : (px > w - rad ? px - (w - rad) : 0.f);
+            if (dx * dx + dy * dy <= rad * rad) ++in;
+        }
     }
+    return (float)in / (float)(N * N);
+}
+
+// 归一化的离散高斯核：格宽 step，半径 kr 格（截到 3σ）
+std::vector<float> GaussKernel(float sigma, float step, int kr) {
+    std::vector<float> g((size_t)(2 * kr + 1));
+    float sum = 0;
+    for (int k = -kr; k <= kr; ++k) {
+        float t = (float)k * step / sigma;
+        float v = std::exp(-0.5f * t * t);
+        g[(size_t)(k + kr)] = v;
+        sum += v;
+    }
+    for (auto &v : g) v /= sum;
+    return g;
+}
+
+}  // namespace
+
+// spec 1「阴影」：shadowBlur 按 CSS box-shadow 的模糊半径理解，高斯 σ = blur / 2，颜色 c，向下偏移 offsetY。
+// D2D 1.0 没有阴影效果：在 CPU 上把圆角矩形的覆盖率做可分离高斯模糊，得到一张 σ/3 网格的小位图，
+// 再线性插值拉伸画出（插值误差远小于 1/255）。行、列相同的部分只算一次，大贴图也很快。
+void Canvas::Shadow(RectF r, float radius, float blur, float offsetY, Color c) {
+    if (r.Empty() || c.a <= 0) return;
+    RectF sr = r.Offset(0, offsetY);
+    float rad = radius;
+    if (rad > sr.w / 2) rad = sr.w / 2;
+    if (rad > sr.h / 2) rad = sr.h / 2;
+    if (rad < 0) rad = 0;
+    float sigma = blur / 2.f;
+    if (sigma < 0.25f) {  // 几乎不模糊：硬投影
+        FillRound(sr, rad, c);
+        return;
+    }
+    // 网格：每格约 σ/3；超大矩形放宽格宽，保证每边不超过约 1024 格
+    float step = sigma / 3.f;
+    float maxLen = (sr.w > sr.h ? sr.w : sr.h) + 6.f * sigma;
+    if (maxLen / step > 1000.f) step = maxLen / 1000.f;
+    // 每轴格数取整、格宽微调，让矩形四边正好落在格线上（覆盖率不受网格位置影响）
+    int nx = (int)std::lround(sr.w / step), ny = (int)std::lround(sr.h / step);
+    if (nx < 1) nx = 1;
+    if (ny < 1) ny = 1;
+    float sx = sr.w / (float)nx, sy = sr.h / (float)ny;
+    int kx = (int)std::ceil(3.f * sigma / sx), ky = (int)std::ceil(3.f * sigma / sy);
+    int W = nx + 2 * kx, H = ny + 2 * ky;
+    std::vector<float> gx = GaussKernel(sigma, sx, kx), gy = GaussKernel(sigma, sy, ky);
+
+    // 1) 横向：只有矩形所在的行有覆盖；与上一行覆盖率相同的行直接复用结果
+    std::vector<float> hb((size_t)W * (size_t)H, 0.f);
+    std::vector<float> cov((size_t)nx), prev;
+    for (int j = 0; j < ny; ++j) {
+        float y0 = (float)j * sy, y1 = y0 + sy;
+        for (int i = 0; i < nx; ++i)
+            cov[(size_t)i] = RoundRectCoverage(sr.w, sr.h, rad, (float)i * sx, y0, (float)i * sx + sx, y1);
+        float *dst = &hb[(size_t)(j + ky) * (size_t)W];
+        if (j > 0 && cov == prev) {
+            std::memcpy(dst, dst - W, sizeof(float) * (size_t)W);
+            continue;
+        }
+        for (int i = 0; i < W; ++i) {
+            // 输出格 i 对应覆盖格 i - kx；核覆盖 [i-2kx, i]，夹到 [0, nx)
+            int a = i - 2 * kx, b = i;
+            if (a < 0) a = 0;
+            if (b > nx - 1) b = nx - 1;
+            float s = 0;
+            for (int m = a; m <= b; ++m) s += cov[(size_t)m] * gx[(size_t)(m - (i - 2 * kx))];
+            dst[i] = s;
+        }
+        prev = cov;
+    }
+
+    // 2) 纵向：与左边一列相同的列直接复用结果
+    std::vector<float> out((size_t)W * (size_t)H, 0.f);
+    std::vector<float> col((size_t)H), pcol;
+    for (int i = 0; i < W; ++i) {
+        for (int j = 0; j < H; ++j) col[(size_t)j] = hb[(size_t)j * (size_t)W + (size_t)i];
+        if (i > 0 && col == pcol) {
+            for (int j = 0; j < H; ++j) out[(size_t)j * (size_t)W + (size_t)i] = out[(size_t)j * (size_t)W + (size_t)i - 1];
+            continue;
+        }
+        // 输出行 j 对应 hb 行 j；有值的行是 [ky, ky+ny)，核覆盖 [j-ky, j+ky]
+        for (int j = 0; j < H; ++j) {
+            int a = j - ky, b = j + ky;
+            if (a < ky) a = ky;
+            if (b > ky + ny - 1) b = ky + ny - 1;
+            float s = 0;
+            for (int m = a; m <= b; ++m) s += col[(size_t)m] * gy[(size_t)(m - j + ky)];
+            out[(size_t)j * (size_t)W + (size_t)i] = s;
+        }
+        pcol = col;
+    }
+
+    // 3) 预乘 BGRA
+    std::vector<uint8_t> px((size_t)W * (size_t)H * 4);
+    for (size_t p = 0; p < out.size(); ++p) {
+        float a = c.a * out[p];
+        if (a < 0) a = 0;
+        if (a > 1) a = 1;
+        uint8_t *q = &px[p * 4];
+        q[0] = (uint8_t)(c.b * a * 255.f + 0.5f);
+        q[1] = (uint8_t)(c.g * a * 255.f + 0.5f);
+        q[2] = (uint8_t)(c.r * a * 255.f + 0.5f);
+        q[3] = (uint8_t)(a * 255.f + 0.5f);
+    }
+    ComPtr<ID2D1Bitmap> bmp = gfx::CreateBitmap(rt_, px.data(), W, H, W * 4);
+    if (!bmp) return;
+    // 位图像素中心对应格子中心：整张位图铺在矩形外扩 (kx, ky) 格的范围上
+    Bitmap(bmp.Get(), RectF(sr.x - (float)kx * sx, sr.y - (float)ky * sy, (float)W * sx, (float)H * sy), nullptr, 1.f, false);
 }
 
 void Canvas::PushClip(RectF r) {

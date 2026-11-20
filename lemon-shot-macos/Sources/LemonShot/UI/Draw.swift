@@ -44,11 +44,20 @@ enum Draw {
         if let b = border { stroke(ctx, r, b, width: 1, radius: radius) }
     }
 
-    /// CG 投影的偏移与模糊是设备空间单位、不受 CTM 影响：这里按当前变换换算，保证 1 倍/2 倍、屏幕/离屏一致。
+    /// 投影（spec 1「阴影」）：offsetY 向下为正（逻辑点），blur 按 CSS box-shadow 模糊半径理解（高斯 σ = blur / 2）。
+    /// 契约里 Mac 写的是 CALayer.shadowRadius = blur / 2；这里不用 CALayer 阴影（离屏 render(in:) 实测 shadowRadius r
+    /// 只得到 σ ≈ r/2，自测图对不上），屏幕与自测都用同一段 CG 投影画出同样的 σ。
+    ///
+    /// CG 投影参数不受 CTM 影响，单位是像素、y 向上（base space）。实测（macOS 27）：
+    /// - CG 的 blur B 像素 ≈ 高斯 σ 0.47·B 像素，即 CSS 模糊半径的含义，所以 blur 直接乘像素倍数传入；
+    /// - 「向下」不能从变换里推：屏幕上层支持视图的上下文 ctm 是单位阵、userSpaceToDeviceSpace 的 d < 0，
+    ///   离屏翻转位图 ctm 的 d < 0、userSpaceToDeviceSpace 的 d 却 > 0，两边按任何一个算都会有一边投影朝上
+    ///   （以前按 userSpaceToDeviceSpace 算，屏幕对、自测图朝上）。
+    /// 所有界面都画在「左上原点、y 向下」的用户空间里，向下一律是 base space 的负 y，只从变换里取倍数。
     static func setShadow(_ ctx: CGContext, offsetY: CGFloat, blur: CGFloat, color: CGColor) {
         let t = ctx.userSpaceToDeviceSpaceTransform
         let s = sqrt(t.a * t.a + t.b * t.b)
-        ctx.setShadow(offset: CGSize(width: t.c * offsetY, height: t.d * offsetY), blur: blur * s, color: color)
+        ctx.setShadow(offset: CGSize(width: 0, height: -offsetY * s), blur: blur * s, color: color)
     }
 
     // MARK: 文字

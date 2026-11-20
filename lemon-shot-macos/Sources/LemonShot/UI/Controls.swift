@@ -141,7 +141,8 @@ final class IconButton: Control {
             } else if pressed {
                 Draw.fill(ctx, r, onDark ? CGColor(gray: 1, alpha: 0.25) : Theme.color("surfacePressed"), radius: radius)
             } else if hovered {
-                Draw.fill(ctx, r, onDark ? CGColor(gray: 1, alpha: 0.16) : Theme.color("surfaceHover"), radius: radius)
+                // 深色底悬停：白色 15%（spec 3 贴图悬停按钮）
+                Draw.fill(ctx, r, onDark ? CGColor(gray: 1, alpha: 0.15) : Theme.color("surfaceHover"), radius: radius)
             }
         }
         let fg = foreground

@@ -80,10 +80,13 @@ void DrawMagnifier(Canvas &c, const CaptureFrame &f, const ls_session_state &st)
         c.Line(top.x, y, top.r(), y, Cap().magnifierGrid, 1);
     }
     float c0 = half * cell;
-    // 十字中线
-    Color band = WithAlpha(Cap().magnifierCenter, 0.25f);
-    c.FillRect(RectF(top.x, top.y + c0, size, cell), band);
-    c.FillRect(RectF(top.x + c0, top.y, cell, size), band);
+    // 十字中线：穿过中心像素中线的 1pt 细线、避开中心框（同 Mac CaptureRender.drawMagnifier）
+    Color cross = WithAlpha(Cap().magnifierCenter, 0.55f);
+    float mid = c0 + cell / 2 - 0.5f;
+    c.FillRect(RectF(top.x, top.y + mid, c0 - 1, 1), cross);
+    c.FillRect(RectF(top.x + c0 + cell + 1, top.y + mid, size - c0 - cell - 1, 1), cross);
+    c.FillRect(RectF(top.x + mid, top.y, 1, c0 - 1), cross);
+    c.FillRect(RectF(top.x + mid, top.y + c0 + cell + 1, 1, size - c0 - cell - 1), cross);
     StrokeInside(c, RectF(top.x + c0, top.y + c0, cell, cell).Inflate(1), Cap().magnifierCenter, 2);
     // 信息区
     c.FillRect(info, Cap().tipBg);
@@ -110,9 +113,13 @@ void DrawMagnifier(Canvas &c, const CaptureFrame &f, const ls_session_state &st)
     c.Text(Widen(std::string(name)), RectF(x, y, w, lineH), ts);
     y += lineH;
     if (f.opt.showTips) {
-        ts.size = K().fontSize.caption - 1;
+        // 提示行按宽度自动缩小字号（从 caption-1 起每次 0.5，最小 7），保证完整显示（同 Mac）
+        const std::wstring &hint = T("capture.magnifier.copy");
+        float fs = K().fontSize.caption - 1;
+        while (fs > 7 && gfx::Measure(hint, fs, kRegular).w > w) fs -= 0.5f;
+        ts.size = fs;
         ts.color = WithAlpha(white, 0.75f);
-        c.Text(T("capture.magnifier.copy"), RectF(x, y, w, lineH), ts);
+        c.Text(hint, RectF(x, y, w, lineH), ts);
     }
     c.PopLayer();
     c.StrokeRound(rect.Inflate(-0.5f), m.radius - 0.5f, Cap().magnifierBorder, 1);
@@ -239,8 +246,9 @@ void LayoutCaptureUi(const CaptureFrame &f, CaptureUi &ui) {
             ls_session_get_style(f.session, tool, &style);
             ui.popover = LayoutPopover(tool, style, true);
             RectF btn = ui.toolbar.ButtonRect(tool);
+            // 面板与工具栏间距用 capture.toolbarGap（同 Mac Session.placePopover）
             ls_rect pr = ls_session_place_popover(f.session, ui.toolbar.rect.Ls(), btn.cx(), ui.popover.w, ui.popover.h,
-                                                  K().popover.gap, cap.toolbarScreenMargin);
+                                                  cap.toolbarGap, cap.toolbarScreenMargin);
             ui.popoverRect = RectF(pr);
             ui.popoverTool = tool;
             ui.hasPopover = true;

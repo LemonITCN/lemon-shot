@@ -14,7 +14,11 @@ final class PinWidget: Widget {
 
     static var margin: CGFloat { Theme.f("pin.shadowBlur") + Theme.f("pin.shadowOffsetY") }
     static let buttonIcons = ["copy", "download", "pencil", "x"]
+    // 悬停按钮（spec 3）：深色胶囊距贴图上、右边缘各 8pt，内边距 4pt，四个 24pt 按钮，图标 16pt
     static let buttonSize: CGFloat = 24
+    static let buttonIconSize: CGFloat = 16
+    static let barInset: CGFloat = 8
+    static let barPadding: CGFloat = 4
 
     init(image: CGImage) {
         self.image = image
@@ -22,7 +26,7 @@ final class PinWidget: Widget {
         corners = s.bool("pin.corners")
         shadow = s.bool("pin.shadow")
         showButtons = false
-        buttons = PinWidget.buttonIcons.map { IconButton(icon: $0, size: PinWidget.buttonSize, iconSize: 14, radius: 6) }
+        buttons = PinWidget.buttonIcons.map { IconButton(icon: $0, size: PinWidget.buttonSize, iconSize: PinWidget.buttonIconSize, radius: 6) }
         super.init()
         let tips = ["pin.copy", "pin.save", "pin.annotate", "pin.close"]
         for (i, b) in buttons.enumerated() {
@@ -42,15 +46,17 @@ final class PinWidget: Widget {
 
     var buttonsRect: CGRect {
         let n = CGFloat(buttons.count)
-        let w = n * PinWidget.buttonSize + 8
+        let pad = PinWidget.barPadding
+        let w = n * PinWidget.buttonSize + 2 * pad
         let r = imageRect
-        return CGRect(x: r.maxX - w - 6, y: r.minY + 6, width: w, height: PinWidget.buttonSize + 8)
+        return CGRect(x: r.maxX - PinWidget.barInset - w, y: r.minY + PinWidget.barInset, width: w, height: PinWidget.buttonSize + 2 * pad)
     }
 
     override func layout() {
         let br = buttonsRect
+        let pad = PinWidget.barPadding
         for (i, b) in buttons.enumerated() {
-            b.frame = CGRect(x: br.minX + 4 + CGFloat(i) * PinWidget.buttonSize, y: br.minY + 4, width: PinWidget.buttonSize, height: PinWidget.buttonSize)
+            b.frame = CGRect(x: br.minX + pad + CGFloat(i) * PinWidget.buttonSize, y: br.minY + pad, width: PinWidget.buttonSize, height: PinWidget.buttonSize)
             b.isHidden = !showButtons
         }
     }
@@ -72,7 +78,8 @@ final class PinWidget: Widget {
         let bw = Theme.f("pin.borderWidth")
         Draw.stroke(ctx, r.insetBy(dx: -bw, dy: -bw), Theme.tokenColor(active ? "pin.activeBorder" : "pin.inactiveBorder"), width: bw, radius: rad > 0 ? rad + bw : 0)
         if showButtons {
-            Draw.fill(ctx, buttonsRect, Theme.cap("tipBg"), radius: 8)
+            let br = buttonsRect
+            Draw.fill(ctx, br, Theme.cap("tipBg"), radius: br.height / 2)
         }
         drawChildren(ctx)
         if let z = zoomText {

@@ -87,20 +87,27 @@ final class FormPage: Widget {
                 y += 24
             case .row(let label, let controls, let info):
                 firstGroup = false
-                labels.append((label, CGRect(x: x0, y: y, width: labelWidth - 12, height: rowHeight)))
+                // 契约 11 节：标签放不下时折成两行、行高随之增加，不缩小字号（与 Windows 一致）
+                let lf = Fonts.ui(Fonts.body)
+                var rh = rowHeight
+                if !label.isEmpty && Draw.textWidth(label, lf) > labelWidth - 12 {
+                    let size = Draw.wrappedSize(label, font: lf, maxWidth: labelWidth - 12, lineSpacing: 0)
+                    rh = max(rowHeight, ceil(size.height) + 8)
+                }
+                labels.append((label, CGRect(x: x0, y: y, width: labelWidth - 12, height: rh)))
                 var x = cx
                 for c in controls where !c.isHidden {
                     let s = c.frame.size == .zero ? c.preferredSize() : c.frame.size
-                    c.frame = CGRect(x: x, y: y + (rowHeight - s.height) / 2, width: s.width, height: s.height)
+                    c.frame = CGRect(x: x, y: y + (rh - s.height) / 2, width: s.width, height: s.height)
                     c.layout()
                     x += s.width + 8
                 }
                 // 说明图标紧跟在标签文字后面
                 if info != nil, let iw = infos.next() {
                     let lw = min(Draw.textWidth(label, Fonts.ui(Fonts.body)), labelWidth - 36)
-                    iw.frame = CGRect(x: x0 + lw + 4, y: y + (rowHeight - 18) / 2, width: 18, height: 18)
+                    iw.frame = CGRect(x: x0 + lw + 4, y: y + (rh - 18) / 2, width: 18, height: 18)
                 }
-                y += rowHeight + rowGap
+                y += rh + rowGap
             case .value(let l):
                 l.frame = CGRect(x: cx, y: y - rowGap - 4, width: frame.minX + width - pad - cx, height: 18)
                 y += 16
@@ -136,10 +143,9 @@ final class FormPage: Widget {
             if Draw.textWidth(t, lf) <= r.width {
                 Draw.text(ctx, t, font: lf, color: Theme.color("text"), in: r)
             } else {
-                // 放不下（英文较长）时折成两行，垂直居中
-                let small = Fonts.ui(Fonts.body - 1)
-                let size = Draw.wrappedSize(t, font: small, maxWidth: r.width, lineSpacing: 0)
-                Draw.wrapped(ctx, t, font: small, color: Theme.color("text"), x: r.minX, y: r.midY - min(size.height, r.height) / 2, width: r.width, lineSpacing: 0)
+                // 放不下时折成两行（同字号，行已加高），垂直居中
+                let size = Draw.wrappedSize(t, font: lf, maxWidth: r.width, lineSpacing: 0)
+                Draw.wrapped(ctx, t, font: lf, color: Theme.color("text"), x: r.minX, y: r.midY - min(size.height, r.height) / 2, width: r.width, lineSpacing: 0)
             }
         }
         drawChildren(ctx)

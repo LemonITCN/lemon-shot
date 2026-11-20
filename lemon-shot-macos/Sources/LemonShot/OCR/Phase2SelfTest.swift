@@ -2,7 +2,7 @@ import AppKit
 import CoreImage
 import LemonShotCore
 
-/// 第二期自测状态（spec 1.1）：ocr、translate、longshot；外加离屏识别检查 ocr-check.txt。
+/// 第二期自测状态（spec 1.1）：ocr、translate、longshot、shell；外加离屏识别检查 ocr-check.txt。
 /// 环境变量 LEMONSHOT_SELFTEST_EXTRA 非空时另出 x- 开头的核对图（带壳各机型、拖选区遮罩），不属于契约状态。
 enum Phase2SelfTest {
     static func run(screen: FrozenImage, dir: URL, write: (String, CGImage?) -> Void) {
@@ -12,6 +12,8 @@ enum Phase2SelfTest {
         write("ocr", OCRWindowController.render(scale: scale, thumbnail: SelfTest.crop(of: screen, thumbRect), text: zh ? fakeOCRZh : fakeOCREn))
         write("translate", TranslateWindowController.render(scale: scale, source: zh ? fakeSourceEn : fakeSourceZh, result: zh ? fakeResultZh : fakeResultEn))
         write("longshot", longshot(screen))
+        // 带壳预览：自动匹配（固定匹配到通用笔记本，与 Windows 自测同一场景）+ 透明背景 + 假屏幕截图
+        write("shell", ShellWindowController.render(scale: scale, shot: screen.cgImage, model: "auto", background: "transparent", auto: .laptop))
         ocrCheck(dir)
         if let e = ProcessInfo.processInfo.environment["LEMONSHOT_SELFTEST_EXTRA"], !e.isEmpty {
             for m in ShellModel.allCases {

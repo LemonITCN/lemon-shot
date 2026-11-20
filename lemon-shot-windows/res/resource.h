@@ -11,4 +11,14 @@
 #define IDR_OCR_REC_PARAM 112
 #define IDR_OCR_REC_BIN 113
 #define IDR_OCR_DICT 114
+// 品牌图：关于页大图与菜单栏/托盘单色剪影（design/icon/export_icons.py 生成）
+#define IDR_BRAND_APP_ICON 120
+#define IDR_GLYPH_16 121
+#define IDR_GLYPH_18 122
+#define IDR_GLYPH_20 123
+#define IDR_GLYPH_24 124
+#define IDR_GLYPH_32 125
+#define IDR_GLYPH_36 126
+#define IDR_GLYPH_40 127
+#define IDR_GLYPH_48 128
 #define IDI_APP 201
