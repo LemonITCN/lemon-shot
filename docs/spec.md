@@ -305,7 +305,7 @@
 
 ## 11. 偏好设置
 
-固定 760×520 窗口（Mac 用全尺寸内容视图、标题栏透明，侧边栏顶部为红绿灯留出 48pt；Windows 用原生标题栏，侧边栏顶部只留 12pt），左侧边栏 `sidebarWidth`（图标 + 文字，项高 `sidebarItemHeight`，选中 `surfaceSelected` 圆角底），右侧内容区（`contentPadding`）：页标题（`header` 字号）+ 分组（组标题 `caption` 字号 `textSecondary`），每行左标签（宽 `labelWidth`）右控件，行高 `rowHeight`；标签放不下时折成两行（行高随之增加），不缩小字号。内容超出窗口高度时内容区可滚动。控件全部自绘：开关（`switchWidth×switchHeight`）、分段选择、下拉（弹出自绘菜单）、滑块（右侧显示数值）、数字步进、颜色块（点开调色板气泡 + 「自定义…」系统取色）、路径（显示路径末两级 + 「选择…」）、快捷键录入框、文本框、密码框、按钮。
+固定 760×520 窗口（Mac 用全尺寸内容视图、标题栏透明，侧边栏顶部为红绿灯留出 48pt；Windows 用原生标题栏，侧边栏顶部只留 12pt），左侧边栏 `sidebarWidth`（图标 + 文字，项高 `sidebarItemHeight`，选中 `surfaceSelected` 圆角底），右侧内容区（`contentPadding`）：页标题（`header` 字号）+ 分组（组标题 `caption` 字号 `textSecondary`），每行左标签（宽 `labelWidth`）右控件，行高 `rowHeight`；标签放不下时折成两行（行高随之增加），不缩小字号。内容超出窗口高度时内容区可滚动。控件全部自绘：开关（`switchWidth×switchHeight`）、分段选择、下拉（弹出自绘菜单）、滑块（右侧显示数值）、数字步进、颜色块（整块圆角矩形色块 44×28，颜色铺满、圆角 `controlRadius`，1pt `inputBorder` 细边、悬停时改 `textTertiary`，带透明度时底下垫 5pt 棋盘格；点开调色板气泡 + 「自定义…」系统取色）、路径（显示路径末两级 + 「选择…」）、快捷键录入框、文本框、密码框、按钮。
 
 | 页（图标） | 内容 |
 |---|---|

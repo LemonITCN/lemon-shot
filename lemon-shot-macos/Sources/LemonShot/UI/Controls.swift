@@ -692,25 +692,25 @@ final class ColorSwatchW: Control {
         frame.size = CGSize(width: 44, height: Theme.f("window.controlHeight"))
     }
 
+    /// 整块圆角矩形色块（契约 11 节）：颜色铺满控件，1pt 细边，悬停时细边加深；带透明度时底下垫棋盘格。
     override func draw(_ ctx: CGContext) {
         ctx.saveGState()
         ctx.setAlpha(alpha)
-        drawInputBox(ctx, frame, focused: popup != nil)
-        let d: CGFloat = 18
-        let r = CGRect(x: frame.midX - d / 2, y: frame.midY - d / 2, width: d, height: d)
-        ColorSwatchW.drawChecker(ctx, r)
-        Draw.ellipse(ctx, r, fill: Theme.hex(hex))
-        Draw.ellipse(ctx, r, stroke: Theme.color("border"), width: 1)
+        let radius = Theme.f("window.controlRadius")
+        let r = frame.insetBy(dx: 0.5, dy: 0.5)
+        ColorSwatchW.drawChecker(ctx, r, radius: radius)
+        Draw.fill(ctx, r, Theme.hex(hex), radius: radius)
+        Draw.stroke(ctx, r, Theme.color(hovered ? "textTertiary" : "inputBorder"), width: 1, radius: radius)
         ctx.restoreGState()
     }
 
-    static func drawChecker(_ ctx: CGContext, _ r: CGRect) {
+    static func drawChecker(_ ctx: CGContext, _ r: CGRect, radius: CGFloat) {
         ctx.saveGState()
-        ctx.addEllipse(in: r)
+        ctx.addPath(CGPath(roundedRect: r, cornerWidth: radius, cornerHeight: radius, transform: nil))
         ctx.clip()
         Draw.fill(ctx, r, CGColor(gray: 1, alpha: 1))
-        let s: CGFloat = 4
-        ctx.setFillColor(CGColor(gray: 0.8, alpha: 1))
+        let s: CGFloat = 5
+        ctx.setFillColor(CGColor(gray: 0.82, alpha: 1))
         var y = r.minY
         var row = 0
         while y < r.maxY {

@@ -452,26 +452,28 @@ ColorSwatchW::ColorSwatchW(const std::string &h, bool allowAlpha, std::function<
     frame = RectF(0, 0, 44, ControlH());
 }
 
-static void DrawChecker(Canvas &c, float cx, float cy, float d) {
-    ComPtr<ID2D1EllipseGeometry> g;
-    D2D1_ELLIPSE e = {{cx, cy}, d / 2, d / 2};
-    gfx::D2D()->CreateEllipseGeometry(&e, g.Put());
+// 圆角矩形内的棋盘格（带透明度的颜色垫底用）
+static void DrawChecker(Canvas &c, RectF r, float radius) {
+    ComPtr<ID2D1RoundedRectangleGeometry> g;
+    D2D1_ROUNDED_RECT rr = {{r.x, r.y, r.x + r.w, r.y + r.h}, radius, radius};
+    gfx::D2D()->CreateRoundedRectangleGeometry(&rr, g.Put());
     c.PushGeometryMask(g.Get());
-    c.FillRect(RectF(cx - d / 2, cy - d / 2, d, d), Color{1, 1, 1, 1});
-    float s = 4;
+    c.FillRect(r, Color{1, 1, 1, 1});
+    float s = 5;
     int row = 0;
-    for (float y = cy - d / 2; y < cy + d / 2; y += s, ++row)
-        for (float x = cx - d / 2 + (row % 2 ? s : 0); x < cx + d / 2; x += 2 * s)
-            c.FillRect(RectF(x, y, s, s), Color{0.8f, 0.8f, 0.8f, 1});
+    for (float y = r.y; y < r.y + r.h; y += s, ++row)
+        for (float x = r.x + (row % 2 ? s : 0); x < r.x + r.w; x += 2 * s)
+            c.FillRect(RectF(x, y, s, s), Color{0.82f, 0.82f, 0.82f, 1});
     c.PopLayer();
 }
 
+// 整块圆角矩形色块（契约 11 节）：颜色铺满控件，1pt 细边，悬停时细边加深；带透明度时底下垫棋盘格
 void ColorSwatchW::Draw(Canvas &c) {
-    InputBox(c, frame, false);
-    float d = 18, cx = frame.cx(), cy = frame.cy();
-    DrawChecker(c, cx, cy, d);
-    c.FillEllipse(cx, cy, d / 2, d / 2, ParseColor(hex, Color{0, 0, 0, 1}));
-    c.StrokeEllipse(cx, cy, d / 2 - 0.5f, d / 2 - 0.5f, U().border, 1);
+    float rad = ControlR();
+    RectF r = frame.Inflate(-0.5f);
+    DrawChecker(c, r, rad);
+    c.FillRound(r, rad, ParseColor(hex, Color{0, 0, 0, 1}));
+    c.StrokeRound(r, rad, hovered ? U().textTertiary : U().inputBorder, 1);
 }
 
 void ColorSwatchW::OnMouseUp(float, float, bool inside) {
