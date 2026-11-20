@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "Lemon Shot records your microphone when you record the screen or audio.";
+"NSCameraUsageDescription" = "Lemon Shot shows your camera as an overlay while recording the screen.";
+"NSAudioCaptureUsageDescription" = "Lemon Shot records the computer's sound when you record the screen or audio.";

@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "general": {
+    "language": "system",
+    "launchAtLogin": false,
+    "showStatusIcon": true,
+    "playSound": true,
+    "theme": "system"
+  },
+  "shortcuts": {
+    "mac": {},
+    "win": {},
+    "capture": {}
+  },
+  "capture": {
+    "detectWindows": true,
+    "captureCursor": false,
+    "showCrosshair": false,
+    "showMagnifier": true,
+    "showTips": true,
+    "tipsColor": "#EB5851",
+    "rightClickExits": false,
+    "returnToPreviousApp": true,
+    "toolbarPopupDelayMs": 500,
+    "doubleClickAction": "copy",
+    "doubleModifierAction": "saveAndOpen",
+    "openWithApp": "",
+    "presetWidth": 400,
+    "presetHeight": 300,
+    "delaySeconds": 3,
+    "delaySound": true,
+    "windowCorners": true,
+    "windowCornerRadius": 12,
+    "windowShadow": true,
+    "windowShadowRadius": 24,
+    "windowShadowColor": "#00000066",
+    "multiWindowCorners": true,
+    "multiWindowShadow": true
+  },
+  "save": {
+    "enterAction": "copy",
+    "alsoCopyWhenSaving": false,
+    "folder": "{pictures}/Lemon Shot",
+    "askLocation": false,
+    "format": "png",
+    "jpegQuality": 90,
+    "resolution": "native",
+    "fileName": "Lemon Shot {yyyy-MM-dd HH.mm.ss}",
+    "colorProfile": "display"
+  },
+  "annotate": {
+    "palette": [
+      "#FF3B30",
+      "#FF9500",
+      "#FFCC00",
+      "#34C759",
+      "#00C7BE",
+      "#007AFF",
+      "#AF52DE",
+      "#FF2D55",
+      "#000000",
+      "#FFFFFF"
+    ],
+    "rect": {
+      "color": 0,
+      "lineWidth": 3,
+      "opacity": 1.0,
+      "filled": false,
+      "cornerRadius": 0
+    },
+    "ellipse": {
+      "color": 0,
+      "lineWidth": 3,
+      "opacity": 1.0,
+      "filled": false
+    },
+    "line": {
+      "color": 0,
+      "lineWidth": 3,
+      "opacity": 1.0,
+      "variant": 0
+    },
+    "arrow": {
+      "color": 0,
+      "lineWidth": 3,
+      "opacity": 1.0,
+      "variant": 0
+    },
+    "pen": {
+      "color": 0,
+      "lineWidth": 3,
+      "opacity": 1.0,
+      "variant": 0
+    },
+    "mosaic": {
+      "variant": 0,
+      "blockSize": 10,
+      "brushSize": 24
+    },
+    "text": {
+      "color": 0,
+      "fontSize": 18,
+      "opacity": 1.0,
+      "variant": 0,
+      "bold": false
+    },
+    "step": {
+      "color": 0,
+      "size": 24,
+      "opacity": 1.0,
+      "variant": 0,
+      "next": 1
+    },
+    "highlight": {
+      "opacity": 0.55,
+      "cornerRadius": 6
+    },
+    "magnify": {
+      "zoom": 2.0,
+      "size": 120,
+      "lineWidth": 3
+    }
+  },
+  "pin": {
+    "corners": true,
+    "cornerRadius": 8,
+    "shadow": true,
+    "opacity": 1.0,
+    "doubleClickCloses": true,
+    "allDesktops": false,
+    "showButtons": true,
+    "libraryMax": 100
+  },
+  "color": {
+    "space": "srgb",
+    "hexPrefix": true,
+    "hexUppercase": true,
+    "customFormat": "rgb(_R, _G, _B)"
+  },
+  "ocr": {
+    "preferQRCode": true,
+    "joinLines": false,
+    "forceAsciiPunctuation": false,
+    "continuous": false,
+    "fixedRegion": false,
+    "keepOnTop": true,
+    "closeAfterCopy": false
+  },
+  "translate": {
+    "provider": "microsoft",
+    "target": "auto",
+    "baidu": {
+      "appId": "",
+      "secret": ""
+    },
+    "tencent": {
+      "secretId": "",
+      "secretKey": "",
+      "region": "ap-guangzhou"
+    },
+    "youdao": {
+      "appKey": "",
+      "appSecret": ""
+    },
+    "deepl": {
+      "authKey": ""
+    },
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "",
+      "model": ""
+    }
+  },
+  "longshot": {
+    "autoScroll": true,
+    "scrollSpeed": 2,
+    "maxHeight": 60000,
+    "tutorialSeen": false
+  },
+  "shell": {
+    "model": "auto",
+    "background": "transparent",
+    "delay": 0
+  },
+  "record": {
+    "folder": "{movies}/Lemon Shot",
+    "format": "mp4",
+    "quality": "high",
+    "fps": 30,
+    "gifFps": 12,
+    "gifScale": 1.0,
+    "microphone": true,
+    "microphoneDevice": "",
+    "systemAudio": true,
+    "showCursor": true,
+    "showClicks": true,
+    "showKeys": false,
+    "keys": {
+      "theme": "auto",
+      "size": "medium",
+      "fadeMs": 1500,
+      "maxKeys": 6,
+      "onlyShortcuts": false,
+      "hideRepeats": true,
+      "position": "bottomCenter"
+    },
+    "camera": false,
+    "cameraDevice": "",
+    "cameraShape": "circle",
+    "countdown": 3,
+    "maxDurationSec": 0,
+    "afterAction": "reveal"
+  },
+  "audio": {
+    "folder": "{music}/Lemon Shot",
+    "format": "m4a",
+    "microphone": true,
+    "microphoneDevice": "",
+    "systemAudio": false
+  }
+}

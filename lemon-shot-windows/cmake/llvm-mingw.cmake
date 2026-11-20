@@ -1,0 +1,21 @@
+# llvm-mingw 交叉编译工具链（由 scripts/fetch-windows-toolchain.sh 准备）。
+# 用法：-DCMAKE_TOOLCHAIN_FILE=cmake/llvm-mingw.cmake -DLS_ARCH=i686|x86_64|aarch64 -DLLVM_MINGW=<目录>
+set(CMAKE_SYSTEM_NAME Windows)
+if(NOT LS_ARCH)
+  set(LS_ARCH x86_64)
+endif()
+# 用 GNU 风格的架构名：ncnn 等第三方库按 ^(arm|aarch64) / x86 这类小写名字判断目标架构
+set(CMAKE_SYSTEM_PROCESSOR ${LS_ARCH})
+if(NOT LLVM_MINGW)
+  set(LLVM_MINGW "$ENV{HOME}/Library/Caches/LemonShot/build-tools/llvm-mingw")
+endif()
+set(_triple ${LS_ARCH}-w64-mingw32)
+set(CMAKE_C_COMPILER ${LLVM_MINGW}/bin/${_triple}-clang)
+set(CMAKE_CXX_COMPILER ${LLVM_MINGW}/bin/${_triple}-clang++)
+set(CMAKE_RC_COMPILER ${LLVM_MINGW}/bin/${_triple}-windres)
+set(CMAKE_AR ${LLVM_MINGW}/bin/llvm-ar)
+set(CMAKE_RANLIB ${LLVM_MINGW}/bin/llvm-ranlib)
+set(CMAKE_FIND_ROOT_PATH ${LLVM_MINGW}/${_triple})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

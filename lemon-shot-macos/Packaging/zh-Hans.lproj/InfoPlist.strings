@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "录屏和录音时需要录制麦克风声音。";
+"NSCameraUsageDescription" = "录屏时需要显示摄像头画中画。";
+"NSAudioCaptureUsageDescription" = "录屏和录音时需要录制电脑内部声音。";

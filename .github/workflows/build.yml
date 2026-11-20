@@ -1,0 +1,270 @@
+# 每次推送到 main、每个 PR 都构建全部客户端并在多个系统版本上实测；推送 v* 标签时自动发布 Release。
+#
+# 产物
+#   macOS：Lemon Shot.app 通用二进制（Apple 芯片 + Intel，macOS 11 起），DMG 与 zip
+#   Windows：LemonShot-x86.exe / LemonShot-x64.exe（Windows 7 SP1 起，含服务器版）、LemonShot-arm64.exe（Windows 10/11 ARM）
+#
+# 实测（运行内核单元测试与 --selftest 离屏渲染全部界面）
+#   macOS 15 / 26（Apple 芯片与 Intel 各一台）、Windows Server 2022 / 2025（x64、x86）、Windows 11 ARM（arm64）、Ubuntu（内核）
+#   Windows 7/8 没有托管构建机：靠构建时的导入表检查保证不调用 Win7 没有的系统函数
+#
+# 可选的签名与公证（仓库 Settings → Secrets 里配置后自动启用，不配置则临时签名）
+#   MACOS_CERTIFICATE_P12        Developer ID Application 证书 .p12 的 base64
+#   MACOS_CERTIFICATE_PASSWORD   .p12 密码
+#   MACOS_SIGN_IDENTITY          例如 "Developer ID Application: LemonIT (TEAMID)"
+#   APPLE_NOTARY_KEY_P8          App Store Connect API 密钥 .p8 的 base64
+#   APPLE_NOTARY_KEY_ID          API 密钥 ID
+#   APPLE_NOTARY_ISSUER_ID       Issuer ID
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+env:
+  LLVM_MINGW_VERSION: '20261117'
+
+jobs:
+  core-tests:
+    name: 内核单元测试 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: 编译并运行
+        env:
+          CC: clang
+          CXX: clang++
+        run: scripts/build-core-tests.sh
+
+  macos-build:
+    name: 构建 macOS
+    runs-on: macos-26
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+      APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+      APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: 选用最新的正式版 Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_[0-9]*.app | grep -v -i -E 'beta|rc' | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - name: 导入签名证书
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          KC="$RUNNER_TEMP/sign.keychain-db"
+          KC_PASS="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          echo "LEMONSHOT_SIGN_IDENTITY=$MACOS_SIGN_IDENTITY" >> "$GITHUB_ENV"
+      - name: 构建通用包与 DMG
+        run: scripts/build-macos.sh --dmg
+      - name: 公证
+        if: env.APPLE_NOTARY_KEY_P8 != '' && env.LEMONSHOT_SIGN_IDENTITY != ''
+        run: |
+          echo "$APPLE_NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          DMG="$(ls dist/macos/*.dmg)"
+          xcrun notarytool submit "$DMG" --key "$RUNNER_TEMP/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple "$DMG"
+          rm -f "$RUNNER_TEMP/notary.p8"
+      - name: 打包
+        run: |
+          cd dist/macos
+          ditto -c -k --keepParent "Lemon Shot.app" LemonShot-macOS.zip
+          mv LemonShot-*.dmg LemonShot-macOS.dmg
+          ls -l
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: |
+            dist/macos/LemonShot-macOS.zip
+            dist/macos/LemonShot-macOS.dmg
+          if-no-files-found: error
+
+  macos-test:
+    name: 实测 macOS (${{ matrix.os }})
+    needs: macos-build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-15, macos-26-intel, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos
+          path: dist
+      - name: 自测截图
+        run: |
+          sw_vers
+          uname -m
+          ditto -x -k dist/LemonShot-macOS.zip app
+          BIN="app/Lemon Shot.app/Contents/MacOS/LemonShot"
+          lipo -info "$BIN"
+          codesign --verify --deep --strict "app/Lemon Shot.app"
+          mkdir -p selftest
+          "$BIN" --selftest "$PWD/selftest" --scale 2 &
+          PID=$!
+          for i in $(seq 1 120); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+          if kill -0 $PID 2>/dev/null; then kill $PID; echo "自测超时"; exit 1; fi
+          wait $PID
+          ls selftest
+          test "$(ls selftest/*.png | wc -l)" -gt 0
+      - uses: actions/upload-artifact@v7
+        if: matrix.os == 'macos-26'
+        with:
+          name: selftest-mac
+          path: selftest
+
+  windows-build:
+    name: 构建 Windows（x86 / x64 / ARM64）
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: 缓存 llvm-mingw
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/LemonShot/build-tools/llvm-mingw
+          key: llvm-mingw-${{ env.LLVM_MINGW_VERSION }}-${{ runner.os }}-${{ runner.arch }}-msvcrt-v2
+      - name: 交叉编译（含导入表检查）
+        run: scripts/build-windows.sh --tests
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: |
+            dist/windows/LemonShot-x86.exe
+            dist/windows/LemonShot-x64.exe
+            dist/windows/LemonShot-arm64.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-tests
+          path: dist/windows/tests
+          if-no-files-found: error
+
+  windows-test:
+    name: 实测 Windows (${{ matrix.os }} ${{ matrix.arch }})
+    needs: windows-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2025, arch: x64 }
+          - { os: windows-2022, arch: x64 }
+          - { os: windows-2022, arch: x86 }
+          - { os: windows-11-arm, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: lemon-shot-core/tests
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-tests
+          path: dist/tests
+      - name: 内核单元测试
+        shell: pwsh
+        run: |
+          [System.Environment]::OSVersion.VersionString
+          & ".\dist\tests\lemonshot_core_tests-${{ matrix.arch }}.exe" "lemon-shot-core\tests\fixtures"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: 自测截图
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD "selftest"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $exe = Join-Path $PWD "dist\LemonShot-${{ matrix.arch }}.exe"
+          $p = Start-Process -FilePath $exe -ArgumentList @("--selftest", "`"$out`"", "--scale", "2") -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); Write-Error "自测超时"; exit 1 }
+          if ($p.ExitCode -ne 0) { Write-Error "自测退出码 $($p.ExitCode)"; exit 1 }
+          Get-ChildItem $out
+          if ((Get-ChildItem $out -Filter *.png).Count -eq 0) { Write-Error "没有生成截图"; exit 1 }
+      - uses: actions/upload-artifact@v7
+        if: matrix.os == 'windows-2025'
+        with:
+          name: selftest-win
+          path: selftest
+
+  compare:
+    name: 两端界面对照
+    needs: [macos-test, windows-test]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: selftest-mac
+          path: selftest/mac
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: selftest-win
+          path: selftest/win
+      - name: 生成对照页
+        run: |
+          python3 -m pip install --quiet pillow
+          scripts/compare-selftest.sh selftest/mac selftest/win compare
+      - uses: actions/upload-artifact@v7
+        with:
+          name: selftest-compare
+          path: compare
+
+  release:
+    name: 发布
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [core-tests, macos-test, windows-test]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos
+          path: out
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: out
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd out
+          V="${TAG#v}"
+          mv LemonShot-macOS.dmg "LemonShot-$V-macOS.dmg"
+          mv LemonShot-macOS.zip "LemonShot-$V-macOS.zip"
+          mv LemonShot-x86.exe "LemonShot-$V-Windows-x86.exe"
+          mv LemonShot-x64.exe "LemonShot-$V-Windows-x64.exe"
+          mv LemonShot-arm64.exe "LemonShot-$V-Windows-arm64.exe"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Lemon Shot $V" --generate-notes ./*
