@@ -2,6 +2,8 @@
 
 小而精的截图录屏工具，Windows 与 macOS 体验一致，永久免费。
 
+[下载最新版](https://github.com/LemonITCN/lemon-shot/releases/latest)：macOS 下载 DMG；Windows 下载 exe，直接运行不用安装（一般电脑选 x64，32 位系统选 x86，骁龙等 ARM 电脑选 ARM64）。
+
 截图、标注、贴图、长截图、带壳截图、取色、文字识别、截图翻译、录屏（同时录麦克风和系统声音）、录音。
 
 ## 支持的系统
@@ -29,7 +31,7 @@
 scripts/build-macos.sh
 ```
 
-产物 `dist/macos/LemonShot.app`。设置 `LEMONSHOT_SIGN_IDENTITY` 用开发者证书签名，否则临时签名。开发时也可以用 Xcode 打开 `lemon-shot-macos/Package.swift`。
+产物 `build/LemonShot.noindex/LemonShot.app`，加 `--dmg` 另出 `dist/macos/` 下的 DMG 和 zip，加 `--install` 装到 `/Applications`。应用放在 `.noindex` 目录里，系统不会把构建目录里的那份也登记进启动台和应用库。签名优先用 `LEMONSHOT_SIGN_IDENTITY`，其次钥匙串里的开发者证书，都没有才临时签名（临时签名的应用每次重新编译，屏幕录制等权限都会失效）。开发时也可以用 Xcode 打开 `lemon-shot-macos/Package.swift`。
 
 ```bash
 scripts/build-windows.sh
@@ -51,7 +53,7 @@ scripts/build-core-tests.sh
 - 在 macOS 15、macOS 26（Apple 芯片与 Intel）、Windows Server 2022 / 2025（x64、x86）、Windows 11 ARM 上运行内核单元测试和自测截图，在 Ubuntu（x64、ARM64）上运行内核单元测试；
 - 把两端自测截图并排生成对照页（构建产物 `selftest-compare`）。
 
-推送 `v` 开头的标签（如 `v0.1.0`）时，自动创建 Release 并上传全部安装包。
+全部实测通过后自动发布 [Release](https://github.com/LemonITCN/lemon-shot/releases)，版本号为「内核版本号.构建序号」（如 `0.1.0.6`），标为最新版，附 macOS DMG 和 Windows x64 / x86 / ARM64 三个 exe。推送 `v` 开头的标签（如 `v0.2.0`）时按标签版本号发布。
 
 在仓库 Secrets 里配置 `MACOS_CERTIFICATE_P12`、`MACOS_CERTIFICATE_PASSWORD`、`MACOS_SIGN_IDENTITY` 后用开发者证书签名，再配置 `APPLE_NOTARY_KEY_P8`、`APPLE_NOTARY_KEY_ID`、`APPLE_NOTARY_ISSUER_ID` 后自动公证；不配置时为临时签名，从网上下载后需要在「隐私与安全性」里允许打开。
 
@@ -60,7 +62,7 @@ scripts/build-core-tests.sh
 两端都支持离屏渲染全部界面状态，用来对照两端界面是否一致：
 
 ```bash
-"dist/macos/LemonShot.app/Contents/MacOS/LemonShot" --selftest out/mac
+scripts/selftest-macos.sh out/mac
 ```
 
 ```bash

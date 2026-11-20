@@ -1,7 +1,8 @@
 #!/bin/bash
 # 构建 Mac 版：arm64 与 x86_64 分别编译后 lipo 合成通用二进制，组装 .app。
 # 用法：scripts/build-macos.sh [--debug] [--install] [--dmg]
-#   产物：dist/macos/LemonShot.app；--dmg 另出 dist/macos/LemonShot-<版本>.dmg（拖到「应用程序」安装）
+#   产物：build/LemonShot.noindex/LemonShot.app（自测、打包用）；--dmg 另出 dist/macos/LemonShot-<版本>.dmg 与 .zip
+#   .app 放在 .noindex 目录里：聚焦不索引这个目录，系统就不会把它当成第二个 LemonShot 登记进启动台和应用库
 #   签名（决定系统权限能否在重新编译后保留）：
 #     1. 环境变量 LEMONSHOT_SIGN_IDENTITY（证书名或 SHA-1；"-" 表示临时签名）
 #     2. 本机文件 scripts/.sign-identity（不进仓库，内容同上）
@@ -24,7 +25,9 @@ VERSION="$(sed -n 's/#define LEMONSHOT_VERSION "\(.*\)"/\1/p' "$ROOT/lemon-shot-
 BUILD="$(date +%Y%m%d%H%M)"
 SCRATCH="${LEMONSHOT_BUILD_DIR:-$ROOT/build/macos}"
 OUT="$ROOT/dist/macos"
-APP="$OUT/LemonShot.app"
+APPDIR="$ROOT/build/LemonShot.noindex"
+APP="$APPDIR/LemonShot.app"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 cd "$ROOT/lemon-shot-macos"
 # 不用 swift build：SwiftPM 会把部署目标抬到 macOS 12，这里直接调编译器以支持 macOS 11。
 MINOS=11.0
@@ -64,8 +67,11 @@ for ARCH in arm64 x86_64; do
     -Xlinker -dead_strip -o "$W/LemonShot"
   BINS+=("$W/LemonShot")
 done
+# 旧版脚本把 .app 放在 dist/macos，被聚焦登记成第二个 LemonShot：注销并删掉
+if [ -d "$OUT/LemonShot.app" ]; then "$LSREGISTER" -u "$OUT/LemonShot.app" >/dev/null 2>&1 || true; rm -rf "$OUT/LemonShot.app"; fi
+rm -f "$ROOT/dist/.metadata_never_index"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$OUT"
 lipo -create "${BINS[@]}" -output "$APP/Contents/MacOS/LemonShot"
 if [ "$CONFIG" = release ]; then xcrun strip -x "$APP/Contents/MacOS/LemonShot"; fi
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Packaging/Info.plist > "$APP/Contents/Info.plist"
@@ -103,18 +109,20 @@ echo "$APP"
 du -sh "$APP" | cat
 if [ "$DMG" = 1 ]; then
   DMG_PATH="$OUT/LemonShot-$VERSION.dmg"
-  STAGE="$SCRATCH/dmg-stage"
+  ZIP_PATH="$OUT/LemonShot-$VERSION.zip"
+  STAGE="$APPDIR/dmg-stage"
   rm -rf "$STAGE" "$DMG_PATH" && mkdir -p "$STAGE"
   cp -R "$APP" "$STAGE/"
   ln -s /Applications "$STAGE/Applications"
   hdiutil create -volname "LemonShot" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG_PATH" >/dev/null
   rm -rf "$STAGE"
   if [ "$IDENTITY" != "-" ]; then codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"; fi
+  rm -f "$ZIP_PATH"
+  ditto -c -k --keepParent "$APP" "$ZIP_PATH"
   echo "$DMG_PATH"
+  echo "$ZIP_PATH"
 fi
-LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-# 构建目录里的副本只给 CI 打包和自测用：不进启动台、不进聚焦搜索，免得和装好的那份混在一起
-touch "$ROOT/dist/.metadata_never_index" 2>/dev/null || true
+# 构建目录里的副本只给打包和自测用，不登记，免得和装好的那份混在一起
 "$LSREGISTER" -u "$APP" >/dev/null 2>&1 || true
 if [ "$INSTALL" = 1 ]; then
   rm -rf "/Applications/LemonShot.app" "/Applications/Lemon Shot.app"

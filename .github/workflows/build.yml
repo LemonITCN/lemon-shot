@@ -1,4 +1,6 @@
-# 每次推送到 main、每个 PR 都构建全部客户端并在多个系统版本上实测；推送 v* 标签时自动发布 Release。
+# 每次推送到 main、每个 PR 都构建全部客户端并在多个系统版本上实测。
+# 发布：推送到 main 且全部实测通过后，自动发布 Release「LemonShot <版本>.<构建序号>」并标为最新版，
+#       附 macOS DMG 和 Windows x64 / x86 / ARM64 三个 exe；推送 v* 标签时按标签版本号发布。
 #
 # 产物
 #   macOS：LemonShot.app 通用二进制（Apple 芯片 + Intel，macOS 11 起），DMG 与 zip
@@ -94,8 +96,8 @@ jobs:
       - name: 打包
         run: |
           cd dist/macos
-          ditto -c -k --keepParent "LemonShot.app" LemonShot-macOS.zip
           mv LemonShot-*.dmg LemonShot-macOS.dmg
+          mv LemonShot-*.zip LemonShot-macOS.zip
           ls -l
       - uses: actions/upload-artifact@v7
         with:
@@ -244,12 +246,15 @@ jobs:
 
   release:
     name: 发布
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: [core-tests, macos-test, windows-test]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
           name: macos
@@ -261,13 +266,54 @@ jobs:
       - name: 创建 Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          MAC_NOTARIZED: ${{ secrets.MACOS_SIGN_IDENTITY != '' && secrets.APPLE_NOTARY_KEY_P8 != '' }}
         run: |
-          cd out
-          V="${TAG#v}"
-          mv LemonShot-macOS.dmg "LemonShot-$V-macOS.dmg"
-          mv LemonShot-macOS.zip "LemonShot-$V-macOS.zip"
-          mv LemonShot-x86.exe "LemonShot-$V-Windows-x86.exe"
-          mv LemonShot-x64.exe "LemonShot-$V-Windows-x64.exe"
-          mv LemonShot-arm64.exe "LemonShot-$V-Windows-arm64.exe"
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "LemonShot $V" --generate-notes ./*
+          VERSION="$(sed -n 's/#define LEMONSHOT_VERSION "\(.*\)"/\1/p' lemon-shot-core/src/internal.h)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then TAG="$GITHUB_REF_NAME"; V="${TAG#v}"; else V="$VERSION.$GITHUB_RUN_NUMBER"; TAG="v$V"; fi
+          MAC="LemonShot-$V-macOS.dmg"
+          X64="LemonShot-$V-Windows-x64.exe"
+          X86="LemonShot-$V-Windows-x86.exe"
+          ARM="LemonShot-$V-Windows-ARM64.exe"
+          mv out/LemonShot-macOS.dmg "out/$MAC"
+          mv out/LemonShot-x64.exe "out/$X64"
+          mv out/LemonShot-x86.exe "out/$X86"
+          mv out/LemonShot-arm64.exe "out/$ARM"
+          DL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          PREV="$(git describe --tags --abbrev=0 "$GITHUB_SHA^" 2>/dev/null || true)"
+          {
+            echo "## 下载"
+            echo
+            echo "| 系统 | 安装包 |"
+            echo "|---|---|"
+            echo "| macOS 11 Big Sur 及以上（Apple 芯片、Intel 通用） | [$MAC]($DL/$MAC) |"
+            echo "| Windows 11 / 10（64 位，绝大多数电脑） | [$X64]($DL/$X64) |"
+            echo "| Windows 11 / 10 ARM（骁龙等 ARM 电脑） | [$ARM]($DL/$ARM) |"
+            echo "| Windows 8.1 / 8 / 7 SP1（64 位） | [$X64]($DL/$X64) |"
+            echo "| Windows 10 / 8.1 / 8 / 7 SP1（32 位） | [$X86]($DL/$X86) |"
+            echo "| Windows Server 2008 R2 及以上 | [$X64]($DL/$X64) |"
+            echo
+            echo "Windows 版是单个 exe，下载后直接运行，不用安装；同一个 exe 在 Windows 7 到 11 上通用，不确定选哪个就选 x64。"
+            echo
+            if [ "$MAC_NOTARIZED" != true ]; then
+              echo "macOS 首次打开如果提示无法验证开发者，到「系统设置 → 隐私与安全性」底部点「仍要打开」。"
+            fi
+            echo "Windows 如果提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」。"
+            echo
+            echo "## 更新内容"
+            echo
+            if [ -n "$PREV" ]; then
+              git log --no-merges --format='- %s' "$PREV..$GITHUB_SHA" | head -50
+              echo
+              echo "完整改动：https://github.com/$GITHUB_REPOSITORY/compare/$PREV...$TAG"
+            else
+              git log --no-merges --format='- %s' "$GITHUB_SHA" | head -50
+            fi
+          } > notes.md
+          cat notes.md
+          FILES=("out/$MAC" "out/$X64" "out/$X86" "out/$ARM")
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${FILES[@]}"
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "LemonShot $V" --notes-file notes.md --latest "${FILES[@]}"
+          fi
