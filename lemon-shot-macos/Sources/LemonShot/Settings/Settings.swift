@@ -14,7 +14,7 @@ final class Settings {
     let directory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        return base.appendingPathComponent("Lemon Shot", isDirectory: true)
+        return base.appendingPathComponent("LemonShot", isDirectory: true)
     }()
 
     var fileURL: URL { directory.appendingPathComponent("settings.json") }
@@ -83,7 +83,7 @@ final class Settings {
             // .atomic：先写临时文件再改名替换
             try data.write(to: fileURL, options: .atomic)
         } catch {
-            NSLog("Lemon Shot: 写设置失败 %@", String(describing: error))
+            NSLog("LemonShot: 写设置失败 %@", String(describing: error))
         }
     }
 

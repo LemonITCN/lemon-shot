@@ -45,7 +45,7 @@ enum LoginItem {
             do {
                 if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
             } catch {
-                NSLog("Lemon Shot: 开机启动设置失败 %@", String(describing: error))
+                NSLog("LemonShot: 开机启动设置失败 %@", String(describing: error))
             }
             return
         }

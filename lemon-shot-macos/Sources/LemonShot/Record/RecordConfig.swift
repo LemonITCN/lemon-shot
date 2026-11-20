@@ -101,9 +101,9 @@ struct RecordConfig {
         max(500_000, Int(Double(width) * Double(height) * Double(fps) * 0.1))
     }
 
-    /// 文件名 `Lemon Shot {yyyy-MM-dd HH.mm.ss}.<ext>`，重名加 ` (2)`。
+    /// 文件名 `LemonShot {yyyy-MM-dd HH.mm.ss}.<ext>`，重名加 ` (2)`。
     static func outputURL(folder: URL, ext: String, date: Date) -> URL {
-        Export.uniqueURL(folder: folder, base: Export.fileName(template: "Lemon Shot {yyyy-MM-dd HH.mm.ss}", date: date), ext: ext)
+        Export.uniqueURL(folder: folder, base: Export.fileName(template: "LemonShot {yyyy-MM-dd HH.mm.ss}", date: date), ext: ext)
     }
 
     /// 计时显示：mm:ss，满一小时 h:mm:ss。

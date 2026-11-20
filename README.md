@@ -1,4 +1,4 @@
-# Lemon Shot
+# LemonShot
 
 小而精的截图录屏工具，Windows 与 macOS 体验一致，永久免费。
 
@@ -29,7 +29,7 @@
 scripts/build-macos.sh
 ```
 
-产物 `dist/macos/Lemon Shot.app`。设置 `LEMONSHOT_SIGN_IDENTITY` 用开发者证书签名，否则临时签名。开发时也可以用 Xcode 打开 `lemon-shot-macos/Package.swift`。
+产物 `dist/macos/LemonShot.app`。设置 `LEMONSHOT_SIGN_IDENTITY` 用开发者证书签名，否则临时签名。开发时也可以用 Xcode 打开 `lemon-shot-macos/Package.swift`。
 
 ```bash
 scripts/build-windows.sh
@@ -60,7 +60,7 @@ scripts/build-core-tests.sh
 两端都支持离屏渲染全部界面状态，用来对照两端界面是否一致：
 
 ```bash
-"dist/macos/Lemon Shot.app/Contents/MacOS/LemonShot" --selftest out/mac
+"dist/macos/LemonShot.app/Contents/MacOS/LemonShot" --selftest out/mac
 ```
 
 ```bash

@@ -202,7 +202,7 @@ bool Panel::Open() {
     view.mic = settings::Bool("audio.microphone");
     view.system = settings::Bool("audio.systemAudio");
     view.format = FormatLabel(EffectiveFormat());
-    if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot"))
+    if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot"))
         return false;
     api::ExcludeFromCapture(hwnd_);
     Render();
@@ -245,7 +245,7 @@ void Panel::Begin() {
         toast::Show(T("notify.folderMissing"), "triangle-alert");
         return;
     }
-    path = UniquePath(folder, exporter::ExpandFileName("Lemon Shot {yyyy-MM-dd HH.mm.ss}"), Widen(fmt));
+    path = UniquePath(folder, exporter::ExpandFileName("LemonShot {yyyy-MM-dd HH.mm.ss}"), Widen(fmt));
     rec::PipelineConfig pc;
     pc.kind = fmt == "wav" ? rec::OutputKind::Wav : (fmt == "mp3" ? rec::OutputKind::Mp3 : rec::OutputKind::M4a);
     pc.mic = wantMic;

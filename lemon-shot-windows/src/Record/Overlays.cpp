@@ -76,7 +76,7 @@ bool PenWindow::Open(RECT region, UINT dpi, Color color) {
     old_ = SelectObject(dc_, dib_);
     // 不带 WS_EX_NOACTIVATE：要拿键盘焦点接收 Esc、Ctrl+Z
     if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW, WS_POPUP, region.left, region.top, w, h, nullptr,
-                   L"Lemon Shot")) {
+                   L"LemonShot")) {
         FreeDib();
         return false;
     }
@@ -318,7 +318,7 @@ void ClickRipples::Add(int x, int y, bool right) {
         } else {
             pool_.emplace_back(new Ripple());
             r = pool_.back().get();
-            if (!r->CreateWin(kOverlayEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return;
+            if (!r->CreateWin(kOverlayEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return;
         }
     }
     r->busy = true;
@@ -395,7 +395,7 @@ bool KeysWindow::Init(RECT region, UINT dpi) {
     view_.size = (sz == "small" || sz == "large") ? sz : "medium";
     std::string th = settings::Str("record.keys.theme");
     view_.dark = th == "dark" ? true : (th == "light" ? false : theme::IsDark());
-    if (!hwnd_ && !CreateWin(kOverlayEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return false;
+    if (!hwnd_ && !CreateWin(kOverlayEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return false;
     return true;
 }
 

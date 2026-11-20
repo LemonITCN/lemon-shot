@@ -26,12 +26,12 @@ enum Phase2SelfTest {
 
     // MARK: 假数据（测试内容，不是界面文案）
 
-    static let fakeOCRZh = "Lemon Shot 截图工具\n支持文字识别、截图翻译、长截图和带壳截图。\n识别结果可以直接修改，复制后粘贴到任意位置。\n\nVersion 1.0.0 · 2026-11-20\nhttps://lemonit.cn"
-    static let fakeOCREn = "Lemon Shot screenshot tool\nRecognize text, translate screenshots, capture scrolling pages and add device frames.\nEdit the result here, then paste it anywhere.\n\nVersion 1.0.0 · 2026-11-20\nhttps://lemonit.cn"
-    static let fakeSourceEn = "Lemon Shot captures any part of your screen, recognizes the text in it and translates it into your language in one step."
-    static let fakeResultZh = "Lemon Shot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。"
-    static let fakeSourceZh = "Lemon Shot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。"
-    static let fakeResultEn = "Lemon Shot captures any part of your screen, recognizes the text in it and translates it into your language in one step."
+    static let fakeOCRZh = "LemonShot 截图工具\n支持文字识别、截图翻译、长截图和带壳截图。\n识别结果可以直接修改，复制后粘贴到任意位置。\n\nVersion 1.0.0 · 2026-11-20\nhttps://lemonit.cn"
+    static let fakeOCREn = "LemonShot screenshot tool\nRecognize text, translate screenshots, capture scrolling pages and add device frames.\nEdit the result here, then paste it anywhere.\n\nVersion 1.0.0 · 2026-11-20\nhttps://lemonit.cn"
+    static let fakeSourceEn = "LemonShot captures any part of your screen, recognizes the text in it and translates it into your language in one step."
+    static let fakeResultZh = "LemonShot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。"
+    static let fakeSourceZh = "LemonShot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。"
+    static let fakeResultEn = "LemonShot captures any part of your screen, recognizes the text in it and translates it into your language in one step."
 
     /// 长截图进行中：假屏幕 + 区域边框 + 右侧面板（预览为区域内容竖向拼三份）。
     static func longshot(_ screen: FrozenImage) -> CGImage? {
@@ -62,7 +62,7 @@ enum Phase2SelfTest {
     /// 渲染一段中英文 + 二维码，跑同一套识别流程（Vision 离屏可用、不需要权限），结果写进 ocr-check.txt。
     static func ocrCheck(_ dir: URL) {
         let size = CGSize(width: 760, height: 300)
-        let lines = ["Lemon Shot 文字识别自测", "这是第二行中文，用来检查阅读顺序。", "The quick brown fox jumps over the lazy dog.", "价格：128 元（含税）"]
+        let lines = ["LemonShot 文字识别自测", "这是第二行中文，用来检查阅读顺序。", "The quick brown fox jumps over the lazy dog.", "价格：128 元（含税）"]
         let qr = qrImage("https://lemonit.cn/lemon-shot")
         guard let img = Offscreen.render(size: size, scale: 2, { ctx in
             Draw.fill(ctx, CGRect(origin: .zero, size: size), CGColor(gray: 1, alpha: 1))

@@ -20,7 +20,7 @@ enum Resources {
 
     static func json(_ relative: String) -> JSON {
         guard let v = JSON.parse(file: url(relative)) else {
-            NSLog("Lemon Shot: 读取资源失败 %@", url(relative).path)
+            NSLog("LemonShot: 读取资源失败 %@", url(relative).path)
             return .object(JObject())
         }
         return v

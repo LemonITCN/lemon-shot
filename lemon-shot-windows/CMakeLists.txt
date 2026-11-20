@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(LemonShot LANGUAGES C CXX RC)
 
-# Lemon Shot Windows 版：纯 Win32 + Direct2D/DirectWrite，C++17，单个 exe，静态链接 libc++。
+# LemonShot Windows 版：纯 Win32 + Direct2D/DirectWrite，C++17，单个 exe，静态链接 libc++。
 # 支持 Windows 7 SP1 起全部桌面与服务器版本；x86/x64 用 msvcrt，ARM64 用 UCRT。
 # 规则：任何 Win7 SP1 之后才有的 API 都必须运行时 GetProcAddress 取，不能直接链接（scripts/check-win-imports.sh 会检查）。
 

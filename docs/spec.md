@@ -1,4 +1,4 @@
-# Lemon Shot 功能与界面契约
+# LemonShot 功能与界面契约
 
 两端（`lemon-shot-macos` Swift / `lemon-shot-windows` C++）都按这份文档实现，界面、交互、默认值逐项一致。改功能先改这里，再改两端。
 
@@ -18,9 +18,9 @@
 
 ## 1. 总体
 
-- 名称：所有语言都显示 **Lemon Shot**。包名 `cn.lemonit.shot`。
+- 名称：所有语言都显示 **LemonShot**。包名 `cn.lemonit.shot`。
 - 常驻后台：Mac 是菜单栏应用（`LSUIElement`，无 Dock 图标）；Windows 是托盘应用，单实例（命名互斥量 `Local\cn.lemonit.shot`，再次启动时通知已运行的实例打开偏好设置）。
-- 设置文件：Mac `~/Library/Application Support/Lemon Shot/settings.json`；Windows `%APPDATA%\Lemon Shot\settings.json`。exe 旁边有 `portable` 文件时改用 exe 旁的 `data\` 目录（Windows 绿色版）。
+- 设置文件：Mac `~/Library/Application Support/LemonShot/settings.json`；Windows `%APPDATA%\LemonShot\settings.json`。exe 旁边有 `portable` 文件时改用 exe 旁的 `data\` 目录（Windows 绿色版）。
   - 读：先加载内置默认值，再用用户文件逐键覆盖（深合并），未知键原样保留。写：只写完整对象，原子替换（先写临时文件再改名）。
   - 路径占位符：`{pictures}` `{movies}` `{music}` 分别是系统图片、影片（Windows 为「视频」）、音乐目录。
 - 自定义快捷键：只把改过的项写进设置 `shortcuts.mac.<id>`、`shortcuts.win.<id>`（全局，按平台）与 `shortcuts.capture.<id>`（截图时单键），值的记法同 `shortcuts.json`，空串表示清除；没写的用 `shortcuts.json` 的默认值。
@@ -291,7 +291,7 @@
 | 混音 | 两路重采样到 48k 立体声相加写一条 AAC 音轨 | 同左 |
 | GIF | 尺寸 = 区域逻辑尺寸（1 倍）× `gifScale`，不受清晰度影响；按 `gifFps` 抓帧存临时原始帧，停止后用内核 `ls_gif_*` 编码（后台线程，显示 `record.encodingGif` 进度） | 同左 |
 
-文件名 `Lemon Shot {yyyy-MM-dd HH.mm.ss}.mp4`，存 `record.folder`。停止后 `afterAction`：`none` / `play` 系统默认播放器打开 / `reveal` 在文件夹中显示；toast `record.saved`。
+文件名 `LemonShot {yyyy-MM-dd HH.mm.ss}.mp4`，存 `record.folder`。停止后 `afterAction`：`none` / `play` 系统默认播放器打开 / `reveal` 在文件夹中显示；toast `record.saved`。
 
 ## 9. 取色
 
@@ -328,7 +328,7 @@
 
 单击图标弹出菜单（Windows 托盘：左键单击 = 截图，右键 = 菜单；Mac：单击 = 菜单）：
 
-截图（快捷键）/ 截取光标下的窗口 / 截取全屏 / 截取上次区域 / 延时截图 / 带壳截图 / 长截图 — 分隔 — 录屏 / 录音 — 分隔 — 文字识别 / 截图翻译 / 取色 — 分隔 — 剪贴板贴图 / 贴图库 / 隐藏/显示全部贴图 / 关闭全部贴图 — 分隔 — 打开截图文件夹 / 偏好设置… / 关于 Lemon Shot — 分隔 — 退出 Lemon Shot
+截图（快捷键）/ 截取光标下的窗口 / 截取全屏 / 截取上次区域 / 延时截图 / 带壳截图 / 长截图 — 分隔 — 录屏 / 录音 — 分隔 — 文字识别 / 截图翻译 / 取色 — 分隔 — 剪贴板贴图 / 贴图库 / 隐藏/显示全部贴图 / 关闭全部贴图 — 分隔 — 打开截图文件夹 / 偏好设置… / 关于 LemonShot — 分隔 — 退出 LemonShot
 
 菜单用系统原生菜单（Mac `NSMenu`、Windows `TrackPopupMenu`），右侧显示快捷键。菜单栏/托盘图标两端同一设计：单色取景框（四角折线）加中心圆点，Mac 用模板图随系统深浅色，Windows 按任务栏深浅色各一套；录制中换成红点。录制中顶部多「停止录制」「暂停/继续录制」。
 
@@ -338,7 +338,7 @@
 
 ## 14. 权限（Mac）
 
-首次启动若没有屏幕录制权限，打开偏好设置的权限页。截图时没有权限：toast `notify.needScreenPermission` 并打开权限页。检测：屏幕录制 `CGPreflightScreenCaptureAccess`，辅助功能 `AXIsProcessTrusted`，输入监控 `IOHIDCheckAccess(kIOHIDRequestTypeListenEvent)`，麦克风/摄像头 `AVCaptureDevice.authorizationStatus`。
+首次启动若没有屏幕录制权限，打开偏好设置的权限页。屏幕录制在系统设置里打开后要重开应用才生效：权限页在屏幕录制未生效时显示「重新打开 LemonShot」按钮（`perm.relaunch`），应用从系统设置切回前台时权限页自动刷新状态。本地构建必须用固定的开发证书签名（scripts/build-macos.sh 自动选），临时签名的应用每次重新编译都会被系统当成新程序、授权全部失效。截图时没有权限：toast `notify.needScreenPermission` 并打开权限页。检测：屏幕录制 `CGPreflightScreenCaptureAccess`，辅助功能 `AXIsProcessTrusted`，输入监控 `IOHIDCheckAccess(kIOHIDRequestTypeListenEvent)`，麦克风/摄像头 `AVCaptureDevice.authorizationStatus`。
 
 ## 15. 两端代码结构对照
 

@@ -1,8 +1,13 @@
 #!/bin/bash
 # 构建 Mac 版：arm64 与 x86_64 分别编译后 lipo 合成通用二进制，组装 .app。
 # 用法：scripts/build-macos.sh [--debug] [--install] [--dmg]
-#   产物：dist/macos/Lemon Shot.app；--dmg 另出 dist/macos/LemonShot-<版本>.dmg（拖到「应用程序」安装）
-#   签名：设置 LEMONSHOT_SIGN_IDENTITY="Developer ID Application: ..." 用正式证书（带安全时间戳，可公证），否则临时签名。
+#   产物：dist/macos/LemonShot.app；--dmg 另出 dist/macos/LemonShot-<版本>.dmg（拖到「应用程序」安装）
+#   签名（决定系统权限能否在重新编译后保留）：
+#     1. 环境变量 LEMONSHOT_SIGN_IDENTITY（证书名或 SHA-1；"-" 表示临时签名）
+#     2. 本机文件 scripts/.sign-identity（不进仓库，内容同上）
+#     3. 钥匙串里第一张 Developer ID Application，没有就第一张 Apple Development
+#     4. 都没有（例如 CI）才临时签名。临时签名的应用每次重新编译，屏幕录制等权限都会失效。
+#   --install：装到 /Applications/LemonShot.app 作为本机唯一一份（注销其他副本的登记）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG=release
@@ -19,7 +24,7 @@ VERSION="$(sed -n 's/#define LEMONSHOT_VERSION "\(.*\)"/\1/p' "$ROOT/lemon-shot-
 BUILD="$(date +%Y%m%d%H%M)"
 SCRATCH="${LEMONSHOT_BUILD_DIR:-$ROOT/build/macos}"
 OUT="$ROOT/dist/macos"
-APP="$OUT/Lemon Shot.app"
+APP="$OUT/LemonShot.app"
 cd "$ROOT/lemon-shot-macos"
 # 不用 swift build：SwiftPM 会把部署目标抬到 macOS 12，这里直接调编译器以支持 macOS 11。
 MINOS=11.0
@@ -69,8 +74,30 @@ cp -R Packaging/zh-Hans.lproj Packaging/en.lproj "$APP/Contents/Resources/"
 mkdir -p "$APP/Contents/Resources/shared"
 cp -R "$ROOT/lemon-shot-core/resources/"* "$APP/Contents/Resources/shared/"
 rm -f "$APP/Contents/Resources/shared/README.md"
-IDENTITY="${LEMONSHOT_SIGN_IDENTITY:--}"
-if [ "$IDENTITY" = "-" ]; then TS=--timestamp=none; else TS=--timestamp; fi
+IDENTITY="${LEMONSHOT_SIGN_IDENTITY:-}"
+if [ -z "$IDENTITY" ] && [ -f "$ROOT/scripts/.sign-identity" ]; then IDENTITY="$(head -1 "$ROOT/scripts/.sign-identity" | tr -d '[:space:]')"; fi
+if [ -z "$IDENTITY" ]; then
+  IDS="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+  IDENTITY="$(printf '%s\n' "$IDS" | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\) "Developer ID Application:.*/\1/p' | head -1)"
+  if [ -z "$IDENTITY" ]; then
+    # 多张开发证书时优先选组织为 LemonIT.CN 的那张，否则取第一张
+    DEV="$(printf '%s\n' "$IDS" | sed -n 's/^ *[0-9]*) \([0-9A-F]\{40\}\) "\(Apple Development:.*\)"$/\1 \2/p')"
+    while read -r HASH NAME; do
+      [ -z "$HASH" ] && continue
+      if security find-certificate -c "$NAME" -p 2>/dev/null | openssl x509 -noout -subject 2>/dev/null | grep -q "LemonIT"; then IDENTITY="$HASH"; break; fi
+    done <<EOF_IDS
+$DEV
+EOF_IDS
+    [ -z "$IDENTITY" ] && IDENTITY="$(printf '%s\n' "$DEV" | head -1 | cut -d' ' -f1)"
+  fi
+fi
+[ -z "$IDENTITY" ] && IDENTITY="-"
+# 正式分发（Developer ID）才需要安全时间戳；临时签名和本地开发证书不联网取时间戳
+TS=--timestamp=none
+if [ "$IDENTITY" != "-" ]; then
+  case "$(security find-identity -v -p codesigning 2>/dev/null | grep -F "$IDENTITY" || true)" in *"Developer ID Application"*) TS=--timestamp ;; esac
+fi
+echo "签名：$( [ "$IDENTITY" = "-" ] && echo 临时签名 || security find-identity -v -p codesigning | grep -F "$IDENTITY" | sed 's/.*"\(.*\)"/\1/' | head -1)"
 codesign --force --options runtime $TS --entitlements Packaging/LemonShot.entitlements --sign "$IDENTITY" "$APP"
 echo "$APP"
 du -sh "$APP" | cat
@@ -80,13 +107,18 @@ if [ "$DMG" = 1 ]; then
   rm -rf "$STAGE" "$DMG_PATH" && mkdir -p "$STAGE"
   cp -R "$APP" "$STAGE/"
   ln -s /Applications "$STAGE/Applications"
-  hdiutil create -volname "Lemon Shot" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG_PATH" >/dev/null
+  hdiutil create -volname "LemonShot" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG_PATH" >/dev/null
   rm -rf "$STAGE"
   if [ "$IDENTITY" != "-" ]; then codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"; fi
   echo "$DMG_PATH"
 fi
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+# 构建目录里的副本只给 CI 打包和自测用：不进启动台、不进聚焦搜索，免得和装好的那份混在一起
+touch "$ROOT/dist/.metadata_never_index" 2>/dev/null || true
+"$LSREGISTER" -u "$APP" >/dev/null 2>&1 || true
 if [ "$INSTALL" = 1 ]; then
-  rm -rf "/Applications/Lemon Shot.app"
-  cp -R "$APP" "/Applications/Lemon Shot.app"
-  echo "已安装到 /Applications/Lemon Shot.app"
+  rm -rf "/Applications/LemonShot.app" "/Applications/Lemon Shot.app"
+  ditto "$APP" "/Applications/LemonShot.app"
+  "$LSREGISTER" -f "/Applications/LemonShot.app" >/dev/null 2>&1 || true
+  echo "已安装到 /Applications/LemonShot.app"
 fi

@@ -192,7 +192,7 @@ public:
     bool Create(RECT r) {
         brush = CreateSolidBrush(Ref(K().recordBar.regionBorder));
         if (!CreateWin(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, r.left,
-                       r.top, r.right - r.left, r.bottom - r.top, nullptr, L"Lemon Shot"))
+                       r.top, r.right - r.left, r.bottom - r.top, nullptr, L"LemonShot"))
             return false;
         SetLayeredWindowAttributes(hwnd_, 0, 255, LWA_ALPHA);
         api::ExcludeFromCapture(hwnd_);
@@ -254,7 +254,7 @@ public:
         pos = POINT{panelPx.x - (LONG)std::lround(margin * s), panelPx.y - (LONG)std::lround(margin * s)};
         int pw = (int)std::ceil((w + 2 * margin) * s), ph = (int)std::ceil((h + 2 * margin) * s);
         if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, pos.x, pos.y, pw, ph, nullptr,
-                       L"Lemon Shot"))
+                       L"LemonShot"))
             return false;
         return true;
     }

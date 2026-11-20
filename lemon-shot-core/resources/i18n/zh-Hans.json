@@ -1,5 +1,5 @@
 {
-  "app.name": "Lemon Shot",
+  "app.name": "LemonShot",
 
   "menu.capture": "截图",
   "menu.captureWindow": "截取光标下的窗口",
@@ -20,8 +20,8 @@
   "menu.closePins": "关闭全部贴图",
   "menu.openFolder": "打开截图文件夹",
   "menu.preferences": "偏好设置…",
-  "menu.about": "关于 Lemon Shot",
-  "menu.quit": "退出 Lemon Shot",
+  "menu.about": "关于 LemonShot",
+  "menu.quit": "退出 LemonShot",
   "menu.stopRecording": "停止录制",
   "menu.pauseRecording": "暂停录制",
   "menu.resumeRecording": "继续录制",
@@ -463,7 +463,8 @@
   "perm.grant": "去授权",
   "perm.notNeeded": "无需授权",
   "perm.denied": "未授权",
-  "perm.restartHint": "授权后如果仍不生效，请退出并重新打开 Lemon Shot。",
+  "perm.restartHint": "授权后如果仍不生效，请退出并重新打开 LemonShot。",
+  "perm.relaunch": "重新打开 LemonShot",
 
   "about.version": "版本 {version}",
   "about.website": "官网",

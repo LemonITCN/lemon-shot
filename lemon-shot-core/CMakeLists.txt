@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(lemonshot_core LANGUAGES C CXX)
 
-# Lemon Shot 公共内核：静态库 + 单元测试。
+# LemonShot 公共内核：静态库 + 单元测试。
 # Mac 端由 SwiftPM 直接编译 src/（见 lemon-shot-macos/Package.swift），这里主要给 Windows 端和单元测试用。
 
 set(CMAKE_CXX_STANDARD 17)

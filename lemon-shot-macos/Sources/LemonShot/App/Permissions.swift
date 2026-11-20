@@ -56,6 +56,16 @@ enum Permissions {
         }
     }
 
+    /// 屏幕录制授权要重开应用才生效：退出后由一个短命的 shell 进程重新打开本应用。
+    static func relaunch() {
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 0.6; /usr/bin/open \"$0\"", path]
+        try? task.run()
+        NSApp.terminate(nil)
+    }
+
     /// 「去授权」：能弹系统请求的先请求一次，再打开系统设置对应页。
     static func request(_ k: Kind, completion: @escaping () -> Void) {
         switch k {

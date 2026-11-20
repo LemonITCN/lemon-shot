@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 生成 Lemon Shot 应用图标 SVG：可爱的黄色小剪刀，转轴处是作者的柠檬 logo。
+# 生成 LemonShot 应用图标 SVG：可爱的黄色小剪刀，转轴处是作者的柠檬 logo。
 # 用法：python3 -I gen_icon.py <输出目录>   之后用 rsvg-convert 渲染各尺寸
 import math, sys, os
 

@@ -1,4 +1,4 @@
-// Lemon Shot Windows 入口：解析命令行，初始化各模块，进入托盘应用或自测。
+// LemonShot Windows 入口：解析命令行，初始化各模块，进入托盘应用或自测。
 #include <windows.h>
 #include <objbase.h>
 #include <ole2.h>
@@ -71,7 +71,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     theme::Init();
     i18n::Init(nullptr);
     if (!gfx::Init()) {
-        MessageBoxW(nullptr, L"Direct2D is not available on this system.", L"Lemon Shot", MB_ICONERROR);
+        MessageBoxW(nullptr, L"Direct2D is not available on this system.", L"LemonShot", MB_ICONERROR);
         return 3;
     }
     icons::Init();

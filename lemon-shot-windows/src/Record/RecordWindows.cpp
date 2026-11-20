@@ -24,7 +24,7 @@ enum { TIMER_TIP = 1, TIMER_FADE_WAIT = 2, TIMER_FADE = 3 };
 void TipWindow::Show(const std::wstring &text, RECT anchor, bool below, UINT dpi) {
     if (text.empty()) return;
     if (!hwnd_) {
-        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return;
+        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return;
         api::ExcludeFromCapture(hwnd_);
     }
     float s = dpi / 96.f;
@@ -60,7 +60,7 @@ void TipWindow::Hide() {
 bool BarWindow::Create(UINT dpi) {
     dpi_ = dpi;
     if (hwnd_) return true;
-    if (!CreateWin(kChromeEx, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return false;
+    if (!CreateWin(kChromeEx, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return false;
     excluded_ = api::ExcludeFromCapture(hwnd_);
     return true;
 }
@@ -270,7 +270,7 @@ void BorderWindows::Show(RECT r, UINT dpi) {
         Strip &st = strips_[i];
         int w = rc[i].right - rc[i].left, h = rc[i].bottom - rc[i].top;
         if (w <= 0 || h <= 0) continue;
-        if (!st.CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) continue;
+        if (!st.CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) continue;
         api::ExcludeFromCapture(st.Hwnd());
         ID2D1RenderTarget *rt = st.surface.Begin(w, h, 96);
         if (!rt) continue;
@@ -298,7 +298,7 @@ bool CountdownWindow::Start(RECT region, UINT dpi, int seconds) {
     dpi_ = dpi;
     remaining_ = seconds;
     if (!hwnd_) {
-        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return false;
+        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return false;
         excluded_ = api::ExcludeFromCapture(hwnd_);
     }
     // Esc 取消：倒计时期间临时注册全局热键（不抢焦点）；被别的程序占用时改为轮询按键状态
@@ -397,7 +397,7 @@ LRESULT CountdownWindow::Handle(UINT msg, WPARAM wp, LPARAM lp) {
 bool ProgressWindow::Show(HMONITOR mon, const std::wstring &text) {
     text_ = text;
     if (!hwnd_) {
-        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot")) return false;
+        if (!CreateWin(kChromeEx | WS_EX_TRANSPARENT, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot")) return false;
         api::ExcludeFromCapture(hwnd_);
     }
     MONITORINFO mi = {};

@@ -224,7 +224,7 @@ bool Overlay::Open(const std::vector<WindowEntry> &windows, const ls_rect *initi
     }
     BuildSession(initial);
     if (!CreateWin(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, WS_POPUP | WS_CLIPCHILDREN, r.left, r.top, r.right - r.left,
-                   r.bottom - r.top, nullptr, L"Lemon Shot"))
+                   r.bottom - r.top, nullptr, L"LemonShot"))
         return false;
     // 截图层本身不接输入法（快捷键是单个字母）；文字输入框单独关联默认输入法
     ImmAssociateContext(hwnd_, nullptr);
@@ -1405,7 +1405,7 @@ public:
         mon = mi.rcMonitor;
         dpi = api::MonitorDpi(m);
         if (!hwnd_ && !CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
-                                 WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot"))
+                                 WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot"))
             return;
         api::ExcludeFromCapture(hwnd_);
         Render();

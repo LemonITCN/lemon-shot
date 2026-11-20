@@ -1,5 +1,5 @@
 // 设置：内置默认值（RCDATA）+ 用户文件深合并；写盘只写完整对象并原子替换。
-// 位置：%APPDATA%\Lemon Shot\settings.json；exe 旁有 portable 文件时用 exe 旁的 data\ 目录。
+// 位置：%APPDATA%\LemonShot\settings.json；exe 旁有 portable 文件时用 exe 旁的 data\ 目录。
 #pragma once
 
 #include <string>

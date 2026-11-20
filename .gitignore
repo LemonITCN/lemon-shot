@@ -4,3 +4,4 @@ dist/
 .swiftpm/
 *.xcodeproj/xcuserdata/
 .DS_Store
+scripts/.sign-identity

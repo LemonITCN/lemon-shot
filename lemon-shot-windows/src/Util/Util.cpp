@@ -262,7 +262,7 @@ std::wstring SanitizeFileName(const std::wstring &name) {
             c = L'_';
     }
     while (!s.empty() && (s.back() == L' ' || s.back() == L'.')) s.pop_back();
-    if (s.empty()) s = L"Lemon Shot";
+    if (s.empty()) s = L"LemonShot";
     return s;
 }
 

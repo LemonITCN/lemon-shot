@@ -1,7 +1,7 @@
 # 每次推送到 main、每个 PR 都构建全部客户端并在多个系统版本上实测；推送 v* 标签时自动发布 Release。
 #
 # 产物
-#   macOS：Lemon Shot.app 通用二进制（Apple 芯片 + Intel，macOS 11 起），DMG 与 zip
+#   macOS：LemonShot.app 通用二进制（Apple 芯片 + Intel，macOS 11 起），DMG 与 zip
 #   Windows：LemonShot-x86.exe / LemonShot-x64.exe（Windows 7 SP1 起，含服务器版）、LemonShot-arm64.exe（Windows 10/11 ARM）
 #
 # 实测（运行内核单元测试与 --selftest 离屏渲染全部界面）
@@ -94,7 +94,7 @@ jobs:
       - name: 打包
         run: |
           cd dist/macos
-          ditto -c -k --keepParent "Lemon Shot.app" LemonShot-macOS.zip
+          ditto -c -k --keepParent "LemonShot.app" LemonShot-macOS.zip
           mv LemonShot-*.dmg LemonShot-macOS.dmg
           ls -l
       - uses: actions/upload-artifact@v7
@@ -123,9 +123,9 @@ jobs:
           sw_vers
           uname -m
           ditto -x -k dist/LemonShot-macOS.zip app
-          BIN="app/Lemon Shot.app/Contents/MacOS/LemonShot"
+          BIN="app/LemonShot.app/Contents/MacOS/LemonShot"
           lipo -info "$BIN"
-          codesign --verify --deep --strict "app/Lemon Shot.app"
+          codesign --verify --deep --strict "app/LemonShot.app"
           mkdir -p selftest
           "$BIN" --selftest "$PWD/selftest" --scale 2 &
           PID=$!
@@ -270,4 +270,4 @@ jobs:
           mv LemonShot-x86.exe "LemonShot-$V-Windows-x86.exe"
           mv LemonShot-x64.exe "LemonShot-$V-Windows-x64.exe"
           mv LemonShot-arm64.exe "LemonShot-$V-Windows-arm64.exe"
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Lemon Shot $V" --generate-notes ./*
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "LemonShot $V" --generate-notes ./*

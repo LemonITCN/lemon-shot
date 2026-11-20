@@ -66,9 +66,9 @@ void ApplyLaunchAtLogin() {
         return;
     if (settings::Bool("general.launchAtLogin")) {
         std::wstring v = L"\"" + ExePath() + L"\"";
-        RegSetValueExW(key, L"Lemon Shot", 0, REG_SZ, (const BYTE *)v.c_str(), (DWORD)((v.size() + 1) * sizeof(wchar_t)));
+        RegSetValueExW(key, L"LemonShot", 0, REG_SZ, (const BYTE *)v.c_str(), (DWORD)((v.size() + 1) * sizeof(wchar_t)));
     } else {
-        RegDeleteValueW(key, L"Lemon Shot");
+        RegDeleteValueW(key, L"LemonShot");
     }
     RegCloseKey(key);
 }

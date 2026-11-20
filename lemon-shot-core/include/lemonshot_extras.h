@@ -1,5 +1,5 @@
 /*
- * Lemon Shot 公共内核：文字识别、二维码、WebP、文本整理、翻译请求、哈希。
+ * LemonShot 公共内核：文字识别、二维码、WebP、文本整理、翻译请求、哈希。
  * 约定同 lemonshot.h。本头文件里的字符串结果由调用方提供缓冲区，或由内核分配后用 ls_free 释放。
  */
 #ifndef LEMONSHOT_EXTRAS_H

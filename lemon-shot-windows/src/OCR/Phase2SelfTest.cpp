@@ -19,13 +19,13 @@ namespace selftest {
 namespace {
 
 // 假数据（测试内容，不是界面文案）
-const wchar_t kOcrZh[] = L"Lemon Shot 截图工具\n支持文字识别、截图翻译、长截图和带壳截图。\n识别结果可以直接修改，复制后粘贴到任意位置。\n\n"
+const wchar_t kOcrZh[] = L"LemonShot 截图工具\n支持文字识别、截图翻译、长截图和带壳截图。\n识别结果可以直接修改，复制后粘贴到任意位置。\n\n"
                          L"Version 1.0.0 · 2026-11-20\nhttps://lemonit.cn";
-const wchar_t kOcrEn[] = L"Lemon Shot screenshot tool\nRecognize text, translate screenshots, capture scrolling pages and add device "
+const wchar_t kOcrEn[] = L"LemonShot screenshot tool\nRecognize text, translate screenshots, capture scrolling pages and add device "
                          L"frames.\nEdit the result here, then paste it anywhere.\n\nVersion 1.0.0 · 2026-11-20\nhttps://lemonit.cn";
-const wchar_t kTextEn[] = L"Lemon Shot captures any part of your screen, recognizes the text in it and translates it into your language in "
+const wchar_t kTextEn[] = L"LemonShot captures any part of your screen, recognizes the text in it and translates it into your language in "
                           L"one step.";
-const wchar_t kTextZh[] = L"Lemon Shot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。";
+const wchar_t kTextZh[] = L"LemonShot 可以截取屏幕的任意区域，识别其中的文字，并一步翻译成你的语言。";
 
 ls_image CropLogical(const ls_image &src, RectF r, float scale) {
     ls_image out = {};
@@ -56,7 +56,7 @@ ls_image LongShotState(const ls_image &screen, float scale) {
 
 // 离屏识别检查：渲染一段中英文，跑同一套识别流程，结果写进 ocr-check.txt
 void OcrCheck(const std::wstring &dir) {
-    const wchar_t *lines[] = {L"Lemon Shot 文字识别自测", L"这是第二行中文，用来检查阅读顺序。",
+    const wchar_t *lines[] = {L"LemonShot 文字识别自测", L"这是第二行中文，用来检查阅读顺序。",
                               L"The quick brown fox jumps over the lazy dog.", L"价格：128 元（含税）"};
     ls_image img = tool::RenderOffscreen(760, 300, 2, [&](Canvas &c) {
         c.FillRect(RectF(0, 0, 760, 300), Color{1, 1, 1, 1});

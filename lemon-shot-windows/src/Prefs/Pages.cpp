@@ -140,7 +140,7 @@ void General(FormPage *p) {
         new ButtonW(T("pref.general.export"), ButtonW::Normal, "download",
                     []() {
                         std::wstring path;
-                        if (AskFile(true, L"Lemon Shot Settings.json", path) && !settings::ExportTo(path))
+                        if (AskFile(true, L"LemonShot Settings.json", path) && !settings::ExportTo(path))
                             toast::Show(T("common.error"), "triangle-alert");
                     }),
         new ButtonW(T("pref.general.import"), ButtonW::Normal, "folder-open",

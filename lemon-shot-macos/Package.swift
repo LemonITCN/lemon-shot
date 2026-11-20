@@ -1,5 +1,5 @@
 // swift-tools-version:5.9
-// Lemon Shot macOS 版。用 scripts/build-macos.sh 打包成 .app；开发时也可以直接用 Xcode 打开本文件。
+// LemonShot macOS 版。用 scripts/build-macos.sh 打包成 .app；开发时也可以直接用 Xcode 打开本文件。
 import PackageDescription
 
 let package = Package(

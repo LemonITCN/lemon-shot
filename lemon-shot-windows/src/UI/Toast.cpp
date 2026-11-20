@@ -29,7 +29,7 @@ public:
     void ShowNew() {
         if (!hwnd_) {
             if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, 0, 0, 1, 1,
-                           nullptr, L"Lemon Shot"))
+                           nullptr, L"LemonShot"))
                 return;
             api::ExcludeFromCapture(hwnd_);
         }

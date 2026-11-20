@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
-  <key>CFBundleDisplayName</key><string>Lemon Shot</string>
+  <key>CFBundleDisplayName</key><string>LemonShot</string>
   <key>CFBundleExecutable</key><string>LemonShot</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIdentifier</key><string>cn.lemonit.shot</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
-  <key>CFBundleName</key><string>Lemon Shot</string>
+  <key>CFBundleName</key><string>LemonShot</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>__VERSION__</string>
   <key>CFBundleVersion</key><string>__BUILD__</string>
@@ -18,9 +18,9 @@
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
-  <key>NSMicrophoneUsageDescription</key><string>Lemon Shot records your microphone when you record the screen or audio.</string>
-  <key>NSCameraUsageDescription</key><string>Lemon Shot shows your camera as an overlay while recording the screen.</string>
-  <key>NSAudioCaptureUsageDescription</key><string>Lemon Shot records the computer's sound when you record the screen or audio.</string>
+  <key>NSMicrophoneUsageDescription</key><string>LemonShot records your microphone when you record the screen or audio.</string>
+  <key>NSCameraUsageDescription</key><string>LemonShot shows your camera as an overlay while recording the screen.</string>
+  <key>NSAudioCaptureUsageDescription</key><string>LemonShot records the computer's sound when you record the screen or audio.</string>
   <key>NSHumanReadableCopyright</key><string>Copyright © 2026 LemonIT.CN. MIT License.</string>
 </dict>
 </plist>

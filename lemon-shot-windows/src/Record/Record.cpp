@@ -123,7 +123,7 @@ bool Session::Begin(HMONITOR m, RECT r) {
         toast::Show(T("notify.folderMissing"), "triangle-alert");
         return false;
     }
-    path = UniquePath(folder, exporter::ExpandFileName("Lemon Shot {yyyy-MM-dd HH.mm.ss}"), gif ? L"gif" : L"mp4");
+    path = UniquePath(folder, exporter::ExpandFileName("LemonShot {yyyy-MM-dd HH.mm.ss}"), gif ? L"gif" : L"mp4");
 
     PipelineConfig pc;
     pc.kind = gif ? OutputKind::Gif : OutputKind::Mp4;

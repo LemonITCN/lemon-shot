@@ -214,7 +214,7 @@ bool CameraWindow::Open(const std::string &deviceId, RECT region, UINT dpi, bool
     pos_ = POINT{region.right - m - size_, region.bottom - m - size_};
     // 进画面：不排除；不抢焦点；可以拖动
     if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, WS_POPUP, pos_.x, pos_.y, size_, size_,
-                   nullptr, L"Lemon Shot"))
+                   nullptr, L"LemonShot"))
         return false;
     shared_ = new Shared();
     shared_->id = deviceId;

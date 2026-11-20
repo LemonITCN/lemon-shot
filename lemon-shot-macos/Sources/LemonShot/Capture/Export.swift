@@ -213,7 +213,7 @@ enum Export {
         // WebP 边长上限 16383 像素（长截图可能超过）：退回 PNG
         if format == "webp" && max(r.image.width, r.image.height) > webpMaxDimension { format = "png" }
         let ext = fileExtension(format)
-        let base = fileName(template: s.string("save.fileName").isEmpty ? "Lemon Shot {yyyy-MM-dd HH.mm.ss}" : s.string("save.fileName"))
+        let base = fileName(template: s.string("save.fileName").isEmpty ? "LemonShot {yyyy-MM-dd HH.mm.ss}" : s.string("save.fileName"))
         let folder = Settings.resolvePath(s.string("save.folder"))
         var url: URL
         if s.bool("save.askLocation") {

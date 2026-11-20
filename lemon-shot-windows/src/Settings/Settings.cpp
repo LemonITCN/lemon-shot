@@ -59,7 +59,7 @@ void Init(bool selftest) {
     if (FileExists(PathJoin(exeDir, L"portable")))
         g_dir = PathJoin(exeDir, L"data");
     else
-        g_dir = PathJoin(KnownFolder(FOLDERID_RoamingAppData), L"Lemon Shot");
+        g_dir = PathJoin(KnownFolder(FOLDERID_RoamingAppData), L"LemonShot");
     EnsureDir(g_dir);
     std::string data;
     if (ReadFileBytes(SettingsFile(), data)) {

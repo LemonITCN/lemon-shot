@@ -149,7 +149,7 @@ public:
         opacity = (float)settings::Num("pin.opacity");
         if (opacity < 0.1f) opacity = 1;
         dpi = api::MonitorDpi(MonitorFromPoint(origin, MONITOR_DEFAULTTONEAREST));
-        if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW, WS_POPUP, 0, 0, 1, 1, nullptr, L"Lemon Shot"))
+        if (!CreateWin(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW, WS_POPUP, 0, 0, 1, 1, nullptr, L"LemonShot"))
             return false;
         Render();
         ShowWindow(hwnd_, SW_SHOW);

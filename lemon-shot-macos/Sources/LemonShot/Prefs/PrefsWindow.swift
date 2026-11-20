@@ -91,6 +91,11 @@ final class PrefsWindowController: NSObject, NSWindowDelegate {
         content.addSubview(scroll)
         content.addSubview(sidebarHost)
         super.init()
+        // 从系统设置切回来时刷新权限页的授权状态
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self, self.page == "permissions", self.window.isVisible else { return }
+            self.rebuild()
+        }
         window.contentView = content
         window.delegate = self
         sidebar.onSelect = { [weak self] id in self?.select(id) }

@@ -70,7 +70,7 @@ enum PrefsPages {
         p.buttons([
             ButtonW(L("pref.general.export"), icon: "download") {
                 let panel = NSSavePanel()
-                panel.nameFieldStringValue = "Lemon Shot Settings.json"
+                panel.nameFieldStringValue = "LemonShot Settings.json"
                 if panel.runModal() == .OK, let url = panel.url { _ = Settings.shared.exportFile(url) }
             },
             ButtonW(L("pref.general.import"), icon: "folder-open") {
@@ -351,6 +351,10 @@ enum PrefsPages {
                 })
             }
             p.row(L(k.titleKey), row, info: L(k.descKey))
+        }
+        // 屏幕录制在系统设置里打开后，要重开应用才生效
+        if !Permissions.granted(.screen) {
+            p.buttons([ButtonW(L("perm.relaunch"), icon: "refresh-cw") { Permissions.relaunch() }])
         }
     }
 
