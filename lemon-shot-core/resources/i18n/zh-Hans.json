@@ -135,6 +135,7 @@
   "ocr.qrcode": "二维码",
   "ocr.openLink": "打开链接",
   "ocr.failed": "识别失败：{error}",
+  "ocr.modelFailed": "文字识别模型加载失败",
   "ocr.thumbnail": "缩略图",
 
   "translate.title": "截图翻译",

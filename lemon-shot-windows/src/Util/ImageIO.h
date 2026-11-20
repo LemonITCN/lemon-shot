@@ -9,7 +9,7 @@
 
 namespace ls {
 
-// format：png jpg tiff bmp pdf（webp/heic 由调用方先换成 png）。scale 只用于 PDF 页面尺寸（逻辑点）
+// format：png jpg webp（无损，内核 libwebp）tiff bmp pdf（heic 由调用方先换成 png）。scale 只用于 PDF 页面尺寸（逻辑点）
 bool EncodeImage(const ls_image &img, const std::string &format, int jpegQuality, float scale, std::string &out);
 bool SaveImageFile(const ls_image &img, const std::wstring &path, const std::string &format, int jpegQuality, float scale);
 // 解码成预乘 BGRA（out 用 ls_image_free）

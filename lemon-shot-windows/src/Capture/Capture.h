@@ -5,7 +5,8 @@ namespace ls {
 namespace capture {
 
 // Ocr / Translate / LongShot：全局快捷键进来的截图层，选完区域直接交给对应模块
-enum class Mode { Normal, LastArea, Preset, ColorPicker, Ocr, Translate, LongShot };
+// Record：录屏模式（spec 8.1），工具栏换成录屏设置面板
+enum class Mode { Normal, LastArea, Preset, ColorPicker, Ocr, Translate, LongShot, Record };
 
 void Start(Mode mode = Mode::Normal);
 bool IsActive();

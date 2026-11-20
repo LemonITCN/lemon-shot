@@ -36,6 +36,7 @@ void Thread::Join() {
 
 void Timeline::Start(int64_t now) {
     Guard g(lock_);
+    if (started_) return;  // 只开始一次（停止后也不会重新开始）
     started_ = true;
     stopped_ = false;
     start_ = now;

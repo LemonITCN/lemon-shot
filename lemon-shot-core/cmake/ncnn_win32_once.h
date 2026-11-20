@@ -1,6 +1,6 @@
 /*
  * ncnn 的 simpleomp.cpp 在 Windows 上也用 pthread_once，而 llvm-mingw 的 libc++ 走 Win32 线程、不带 winpthreads。
- * 这里用 InitOnceExecuteOnce（Vista 起都有）补一个 pthread_once，只强制包含进 ncnn 的源文件（见 CMakeLists.txt）。
+ * 这里用 InitOnceExecuteOnce（Vista 起都有）补一个 pthread_once，只强制包含进 ncnn 的源文件（见 cmake/extras.cmake）。
  */
 #ifndef LS_NCNN_WIN32_ONCE_H
 #define LS_NCNN_WIN32_ONCE_H

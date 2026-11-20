@@ -138,7 +138,11 @@ LRESULT MainWindow::Handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_QUERYENDSESSION: return TRUE;
     case WM_ENDSESSION:
-        if (wp) settings::SaveNow();
+        if (wp) {
+            record::Shutdown();  // 注销/关机：录制中的文件写完再退出
+            audio::Shutdown();
+            settings::SaveNow();
+        }
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -259,6 +263,8 @@ void Execute(int cmd) {
 }
 
 void Quit() {
+    record::Shutdown();  // 录制中：停止并写完文件
+    audio::Shutdown();
     capture::Cancel();
     pins::CloseAll();
     prefs::Close();

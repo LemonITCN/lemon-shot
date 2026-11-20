@@ -26,7 +26,7 @@ float SidebarW() { return theme::Tok().window.sidebarWidth; }
 
 RectF SideItem(int i) {
     const auto &w = theme::Tok().window;
-    float top = w.titleBarHeight + 4;
+    float top = 12;  // Windows 用原生标题栏，侧边栏顶部只留 12pt（spec 11）
     return RectF(10, top + i * (w.sidebarItemHeight + 2), SidebarW() - 20, w.sidebarItemHeight);
 }
 

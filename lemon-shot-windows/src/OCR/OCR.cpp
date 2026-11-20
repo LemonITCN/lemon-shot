@@ -132,6 +132,7 @@ class OcrWindow : public tool::ToolWindow {
 public:
     Content *ui = nullptr;
     HWND edit = nullptr;
+    ~OcrWindow() override { delete ui; }
     std::vector<Output> blocks;
     int gen = 0;
     std::string link;

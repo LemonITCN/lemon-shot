@@ -58,7 +58,32 @@ function(lemonshot_add_extras target)
         set(NCNN_GNU_INLINE_ASM OFF CACHE BOOL "" FORCE)
       endif()
     endif()
+    # 体积：只编 PP-OCRv5 用到的算子及卷积等实现内部会创建的辅助算子，其余全部关掉
+    set(_ncnn_keep input split concat reshape permute squeeze expanddims flatten crop slice padding packing cast noop dropout
+        binaryop unaryop eltwise convolution convolutiondepthwise convolution1d convolutiondepthwise1d deconvolution
+        deconvolutiondepthwise innerproduct gemm matmul multiheadattention sdpa layernorm softmax pooling pooling1d interp
+        sigmoid swish hardswish hardsigmoid relu clip tanh mish elu gelu selu softplus prelu batchnorm scale bias reduction)
+    file(STRINGS ${TP}/ncnn/src/CMakeLists.txt _ncnn_layer_lines REGEX "ncnn_add_layer\\(")
+    foreach(_line ${_ncnn_layer_lines})
+      string(REGEX MATCH "ncnn_add_layer\\(([A-Za-z0-9_]+)" _m "${_line}")
+      string(TOLOWER "${CMAKE_MATCH_1}" _lname)
+      list(FIND _ncnn_keep ${_lname} _idx)
+      if(_idx EQUAL -1)
+        set(WITH_LAYER_${_lname} OFF CACHE BOOL "" FORCE)
+      endif()
+    endforeach()
+    # 体积：去掉 OCR 用不上的指令集版本（int8/bf16 专用与 AVX512、SVE 系列，以及单独的 FMA、F16C 版本——AVX2 版本已包含 FMA）；
+    # x86 每个算子只编 SSE2、AVX、AVX2 三份，ARM64 保留 ARMv8.2 fp16
+    foreach(o NCNN_FMA NCNN_F16C NCNN_AVX512 NCNN_AVX512VNNI NCNN_AVX512BF16 NCNN_AVX512FP16 NCNN_AVXVNNI NCNN_AVXVNNIINT8 NCNN_AVXVNNIINT16
+              NCNN_AVXNECONVERT NCNN_XOP NCNN_FMA4 NCNN_ARM82DOT NCNN_ARM82FP16FML NCNN_ARM84BF16 NCNN_ARM84I8MM
+              NCNN_ARM86SVE NCNN_ARM86SVE2 NCNN_ARM86SVEBF16 NCNN_ARM86SVEI8MM NCNN_ARM86SVEF32MM)
+      set(${o} OFF CACHE BOOL "" FORCE)
+    endforeach()
     add_subdirectory(${TP}/ncnn ${CMAKE_BINARY_DIR}/ncnn EXCLUDE_FROM_ALL)
+    if(WIN32)
+      # simpleomp 在 mingw 上要用 pthread_once，llvm-mingw 不带 winpthreads：用 InitOnceExecuteOnce 补一个
+      target_compile_options(ncnn PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${LEMONSHOT_CORE_DIR}/cmake/ncnn_win32_once.h>")
+    endif()
     add_library(lemonshot_ocr STATIC ${LEMONSHOT_CORE_DIR}/extras/ocr.cpp)
     target_include_directories(lemonshot_ocr PRIVATE ${LEMONSHOT_CORE_DIR}/include)
     target_link_libraries(lemonshot_ocr PUBLIC ncnn)

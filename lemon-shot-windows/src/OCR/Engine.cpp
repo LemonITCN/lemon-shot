@@ -115,6 +115,11 @@ void RecognizeAsync(ls_image img, std::function<void(Output &)> done) {
     });
 }
 
+void RecognizeSync(const ls_image &img, Output &out) {
+    out = Output();
+    Run(img, out);
+}
+
 std::string LayoutText(const std::vector<Line> &lines, bool joinLines, bool asciiPunct) {
     if (lines.empty()) return std::string();
     std::vector<ls_text_line> arr(lines.size());

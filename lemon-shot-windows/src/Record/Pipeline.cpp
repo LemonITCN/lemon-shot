@@ -171,6 +171,7 @@ void Pipeline::CaptureRun() {
             grab.Grab();
             int64_t ts;
             if (!timeline_.Map(Now100ns(), &ts)) continue;
+            if (lastTs < 0) ts = 0;  // 第一帧作为第 0 帧
             if (ts <= lastTs) ts = lastTs + 1;
             const uint8_t *src = grab.Pixels();
             int sstride = grab.Stride();

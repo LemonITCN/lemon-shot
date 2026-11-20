@@ -181,7 +181,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: lemon-shot-core/tests
+          sparse-checkout: |
+            lemon-shot-core/tests
+            lemon-shot-core/resources
       - uses: actions/download-artifact@v8
         with:
           name: windows
@@ -197,6 +199,7 @@ jobs:
           & ".\dist\tests\lemonshot_core_tests-${{ matrix.arch }}.exe" "lemon-shot-core\tests\fixtures"
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: 自测截图
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $out = Join-Path $PWD "selftest"
@@ -208,7 +211,7 @@ jobs:
           Get-ChildItem $out
           if ((Get-ChildItem $out -Filter *.png).Count -eq 0) { Write-Error "没有生成截图"; exit 1 }
       - uses: actions/upload-artifact@v7
-        if: matrix.os == 'windows-2025'
+        if: ${{ !cancelled() && matrix.os == 'windows-2025' }}
         with:
           name: selftest-win
           path: selftest

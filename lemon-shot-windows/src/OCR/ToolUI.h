@@ -220,6 +220,7 @@ private:
     prefs::Widget *hover_ = nullptr, *pressed_ = nullptr, *focus_ = nullptr;
     bool tracking_ = false;
     std::vector<HWND> edits_;
+    HWND lastEdit_ = nullptr;  // 上次有焦点的文本框（窗口激活时把焦点还给它）
     HFONT editFont_ = nullptr;
     HBRUSH editBrush_ = nullptr;
     COLORREF editBg_ = 0, editText_ = 0;

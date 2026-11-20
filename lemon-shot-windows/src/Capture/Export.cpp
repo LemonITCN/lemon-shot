@@ -101,8 +101,8 @@ std::wstring SaveFolder() { return settings::ExpandPath(settings::Str("save.fold
 
 std::string SaveFormat() {
     std::string f = settings::Str("save.format");
-    // webp 第二期接入内核 libwebp；heic Windows 不支持：都退回 png
-    if (f == "webp" || f == "heic" || f.empty()) return "png";
+    // heic Windows 不支持：退回 png（webp 用内核附带的 libwebp，见 ImageIO）
+    if (f == "heic" || f.empty()) return "png";
     if (f == "jpeg") return "jpg";
     return f;
 }
@@ -136,6 +136,8 @@ static bool AskPath(const std::wstring &folder, const std::wstring &name, const 
 
 bool SaveImage(const ls_image &img, float scale, bool ask, std::wstring &path, std::wstring &error) {
     std::string fmt = SaveFormat();
+    // WebP 单边最大 16383 像素（长截图常超过）：退回 PNG
+    if (fmt == "webp" && (img.width > 16383 || img.height > 16383)) fmt = "png";
     std::wstring folder = SaveFolder();
     std::wstring name = ExpandFileName(settings::Str("save.fileName"));
     if (ask) {

@@ -135,6 +135,7 @@
   "ocr.qrcode": "QR Code",
   "ocr.openLink": "Open Link",
   "ocr.failed": "Recognition failed: {error}",
+  "ocr.modelFailed": "Failed to load the text recognition model",
   "ocr.thumbnail": "Thumbnail",
 
   "translate.title": "Translate Screenshot",

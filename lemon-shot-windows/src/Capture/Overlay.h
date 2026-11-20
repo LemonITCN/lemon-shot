@@ -3,6 +3,7 @@
 
 #include <windows.h>
 
+#include <memory>
 #include <vector>
 
 #include "Capture/CaptureView.h"
@@ -37,11 +38,12 @@ public:
 
 class Overlay : public Window {
 public:
-    // mode：0 截图，1 取色，2 贴图标注（lock_selection，工具栏贴在图下方，窗口区域裁到图片与工具栏）
+    // mode：0 截图，1 取色，2 贴图标注（lock_selection，工具栏贴在图下方，窗口区域裁到图片与工具栏），3 录屏
     Overlay(OverlayHost *host, MonitorShot *shot, int mode) : host_(host), shot_(shot) {
         opt_ = CaptureOptions::FromSettings();
         opt_.colorPicker = mode == 1;
         opt_.pinMode = mode == 2;
+        opt_.recordMode = mode == 3;
     }
     ~Overlay() override;
 
@@ -59,13 +61,16 @@ public:
     void HandleKey(bool down, WPARAM vk, LPARAM lp);
     void Dispatch(int ev);
     void ReloadOptions() {
-        bool cp = opt_.colorPicker, pm = opt_.pinMode;
+        bool cp = opt_.colorPicker, pm = opt_.pinMode, rm = opt_.recordMode;
         opt_ = CaptureOptions::FromSettings();
         opt_.colorPicker = cp;
         opt_.pinMode = pm;
+        opt_.recordMode = rm;
         Redraw();
     }
     bool ColorPicker() const { return opt_.colorPicker; }
+    // 截图工具栏「录屏」：原地换成录屏模式（保留选区，清掉标注，工具栏换成录屏设置面板）
+    void EnterRecordMode();
     bool Editing() const { return edit_ || sizeW_; }
     void Wheel(POINT screen, float dy);
     // 贴图标注：把当前会话（图片 + 标注）画成像素图
@@ -149,6 +154,9 @@ private:
     // 上一次分发时的状态（判断「选区刚确定」）
     int prevPhase_ = -1;
     int prevDragging_ = 0;
+    // 录屏模式的设置面板
+    std::shared_ptr<rec::SetupPanel> recordPanel_;
+    void CreateRecordPanel();
 };
 
 

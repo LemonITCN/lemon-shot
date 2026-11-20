@@ -29,6 +29,7 @@ const UINT kTrayId = 1;
 HICON MakeTrayIcon() {
     int size = GetSystemMetrics(SM_CXSMICON);
     if (size <= 0) size = 16;
+    if (HICON rec = record::TrayIcon(size)) return rec;  // 录制中：红点（暂停时灰点）
     return app::AppIcon(-size);  // 负数：托盘单色图标
 }
 
@@ -128,7 +129,7 @@ void OnTaskbarCreated() {
 bool HandleCallback(HWND owner, WPARAM, LPARAM lp) {
     UINT ev = g_v4 ? LOWORD(lp) : (UINT)lp;
     switch (ev) {
-    case WM_LBUTTONUP: app::Execute(app::CMD_CAPTURE); return true;
+    case WM_LBUTTONUP: app::Execute(record::IsRecording() ? app::CMD_RECORD_STOP : app::CMD_CAPTURE); return true;
     case WM_CONTEXTMENU: ShowMenu(owner); return true;
     case WM_RBUTTONUP:
         if (!g_v4) ShowMenu(owner);

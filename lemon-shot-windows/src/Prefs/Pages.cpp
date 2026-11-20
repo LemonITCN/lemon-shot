@@ -9,6 +9,7 @@
 #include "Capture/Export.h"
 #include "Capture/StyleSettings.h"
 #include "Prefs/Widgets.h"
+#include "Record/Devices.h"
 #include "Settings/I18n.h"
 #include "Settings/Settings.h"
 #include "Translate/Translate.h"
@@ -349,9 +350,17 @@ void Ocr(FormPage *p) {
     p->AddRow(L"", new ButtonW(T("translate.test"), ButtonW::Normal, nullptr, [provider]() { translate::TestProvider(provider); }));
 }
 
-std::vector<Option> DeviceOptions() {
-    // 设备列表在第二期（录屏、录音）接入；目前只有系统默认设备
-    return {{"", T("record.default"), true}};
+// 设备列表：「默认」+ 系统里的麦克风/摄像头；设置里存的设备现在不在（拔掉了、从另一台电脑导入）时按默认处理
+std::vector<Option> DeviceOptions(bool audio, const char *key) {
+    std::vector<Option> out = {{"", T("record.default"), true}};
+    std::string cur = settings::Str(key);
+    bool found = cur.empty();
+    for (auto &d : audio ? rec::Microphones() : rec::Cameras()) {
+        out.push_back({d.id, d.name, true});
+        if (d.id == cur) found = true;
+    }
+    if (!found) out.push_back({cur, T("record.default"), true});
+    return out;
 }
 
 void Record(FormPage *p) {
@@ -365,9 +374,9 @@ void Record(FormPage *p) {
               }));
     p->AddRow(T("pref.record.gifScale"), Seg("record.gifScale", {"1", "0.75", "0.5"},
                                              {Percent(100), Percent(75), Percent(50)}));
-    p->AddRow(T("pref.record.microphoneDevice"), Drop("record.microphoneDevice", DeviceOptions(), 260));
+    p->AddRow(T("pref.record.microphoneDevice"), Drop("record.microphoneDevice", DeviceOptions(true, "record.microphoneDevice"), 260));
     p->AddRow(T("record.systemAudio"), Toggle("record.systemAudio"));
-    p->AddRow(T("pref.record.cameraDevice"), Drop("record.cameraDevice", DeviceOptions(), 260));
+    p->AddRow(T("pref.record.cameraDevice"), Drop("record.cameraDevice", DeviceOptions(false, "record.cameraDevice"), 260));
     p->AddRow(T("pref.record.cameraShape"), Seg("record.cameraShape", {"circle", "rounded"},
                                                 {T("pref.record.cameraShape.circle"), T("pref.record.cameraShape.rounded")}));
     p->AddRow(T("record.showCursor"), Toggle("record.showCursor"));
@@ -402,7 +411,7 @@ void Audio(FormPage *p) {
     p->AddRow(T("pref.audio.format"), Drop("audio.format",
                                            {{"m4a", L"M4A (AAC)", true}, {"wav", L"WAV", true}, {"mp3", L"MP3", api::IsWin8OrLater()}},
                                            160));
-    p->AddRow(T("pref.record.microphoneDevice"), Drop("audio.microphoneDevice", DeviceOptions(), 260));
+    p->AddRow(T("pref.record.microphoneDevice"), Drop("audio.microphoneDevice", DeviceOptions(true, "audio.microphoneDevice"), 260));
     p->AddRow(T("record.systemAudio"), Toggle("audio.systemAudio"));
 }
 

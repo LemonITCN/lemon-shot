@@ -11,6 +11,7 @@
 #include "Util/ComPtr.h"
 #include "Util/Log.h"
 #include "Util/Util.h"
+#include "lemonshot_extras.h"
 
 namespace ls {
 
@@ -161,6 +162,15 @@ bool EncodeImage(const ls_image &img, const std::string &format, int jpegQuality
         return WicEncode(img, GUID_ContainerFormatBmp, alpha ? GUID_WICPixelFormat32bppBGRA : GUID_WICPixelFormat24bppBGR, 0,
                          out);
     if (format == "pdf") return EncodePdf(img, scale, out);
+    if (format == "webp") {
+        // 无损 WebP（Windows 一律按 sRGB 处理，不需要再转色彩空间）
+        uint8_t *buf = nullptr;
+        size_t n = 0;
+        if (ls_webp_encode(&img, 1, 75.f, &buf, &n) != 0 || !buf) return false;
+        out.assign((const char *)buf, n);
+        ls_free(buf);
+        return true;
+    }
     return WicEncode(img, GUID_ContainerFormatPng, alpha ? GUID_WICPixelFormat32bppBGRA : GUID_WICPixelFormat24bppBGR, 0, out);
 }
 

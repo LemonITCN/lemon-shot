@@ -45,7 +45,7 @@ bool ToolbarEnabled(int id, const ls_session_state &st);
 void DrawToolbar(Canvas &c, const ToolbarLayout &lay, const ls_session_state &st, int hover, int pressed);
 int HitToolbar(const ToolbarLayout &lay, float x, float y);
 
-// 提示气泡：放在按钮下方（below = false 时放上方），夹在 [0, screenW]
+// 提示气泡：按钮正下方居中（below = false 时正上方），与工具栏边缘间距 6pt，夹在屏幕内
 RectF ToolbarTooltipRect(RectF btn, const std::wstring &text, bool below, float screenW, float screenH);
 void DrawToolbarTooltip(Canvas &c, RectF btn, const std::wstring &text, bool below, float screenW, float screenH);
 

@@ -33,8 +33,6 @@ set_target_properties(LemonShot PROPERTIES OUTPUT_NAME LemonShot)
 # 第二期组件：OCR（ncnn + PP-OCRv5，模型以 RCDATA 编进 exe，见 res/app.rc）、二维码（zxing-cpp）、WebP（libwebp）
 include(${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/cmake/extras.cmake)
 lemonshot_add_extras(LemonShot OCR QR WEBP)
-# simpleomp.cpp 需要 pthread_once：用 InitOnceExecuteOnce 补上（llvm-mingw 不带 winpthreads）
-target_compile_options(ncnn PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ncnn_win32_once.h>")
 # 模型文件变化时重新编资源
 set_property(SOURCE res/app.rc APPEND PROPERTY OBJECT_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lemon-shot-core/third_party/ppocr/PP_OCRv5_mobile_det.ncnn.param

@@ -29,6 +29,9 @@ struct Output {
 // 后台识别（文字 + 二维码），接管 img；done 在界面线程调用。必须在界面线程调用。
 void RecognizeAsync(ls_image img, std::function<void(Output &)> done);
 
+// 同步识别（自测用；不能和后台识别同时调用）
+void RecognizeSync(const ls_image &img, Output &out);
+
 // 内核整理：阅读顺序、合并换行、英文标点（UTF-8）
 std::string LayoutText(const std::vector<Line> &lines, bool joinLines, bool asciiPunct);
 

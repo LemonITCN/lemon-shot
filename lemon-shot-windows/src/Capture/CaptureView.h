@@ -12,6 +12,10 @@
 
 namespace ls {
 
+namespace rec {
+class SetupPanel;  // 录屏设置面板（Record/SetupPanel.h）
+}
+
 struct CaptureOptions {
     bool showMagnifier = true;
     bool showCrosshair = false;
@@ -21,6 +25,7 @@ struct CaptureOptions {
     bool hexUpper = true;
     bool colorPicker = false;  // 取色模式：只有放大镜
     bool pinMode = false;      // 贴图标注：没有遮罩、选区框、尺寸提示、放大镜与提示，工具栏用贴图版
+    bool recordMode = false;   // 录屏模式（spec 8.1）：没有放大镜，工具栏换成录屏设置面板
     static CaptureOptions FromSettings();
 };
 
@@ -46,6 +51,9 @@ struct CaptureUi {
     bool hasSizeTip = false;
     RectF sizeTip;
     RectF sizeEditW, sizeEditH;  // 编辑时两个输入框的位置
+    // 录屏模式：设置面板（由截图层窗口持有）与它是否显示
+    rec::SetupPanel *recordPanel = nullptr;
+    bool hasRecordPanel = false;
 };
 
 struct CaptureFrame {

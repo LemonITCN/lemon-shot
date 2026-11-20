@@ -12,9 +12,11 @@
 #include "Capture/CaptureView.h"
 #include "Capture/StyleSettings.h"
 #include "Capture/Toolbar.h"
+#include "OCR/Phase2SelfTest.h"
 #include "Pin/PinLibrary.h"
 #include "Pin/Pins.h"
 #include "Prefs/Prefs.h"
+#include "Record/RecordSelfTest.h"
 #include "Settings/I18n.h"
 #include "Settings/Settings.h"
 #include "UI/Gfx.h"
@@ -400,6 +402,13 @@ int Run(const std::wstring &dir, float scale) {
         for (auto &im : thumbs) ls_image_free(&im);
         Write("pin-library", img);
     }
+    // 文字识别、翻译、长截图、带壳（另写 ocr-check.txt：离屏跑一遍真实识别流程）
+    RunPhase2(screen, g_scale, g_dir, [](const char *name, ls_image &img) { return Write(name, img); });
+    // 录屏设置面板、控制条、按键浮层、录音面板
+    rec::SelfTest(
+        screen, g_scale, kScreenW, kScreenH, [&]() { return SelectedSession(screen); },
+        [](float w, float h, const rec::DrawFn &draw) { return Render(w, h, draw); },
+        [](const char *name, ls_image &img) { return Write(name, img); });
     // 提示：四周留 24pt，背后是假屏幕
     {
         std::wstring text = T("notify.copied");

@@ -185,6 +185,7 @@ class TranslateWindow : public tool::ToolWindow {
 public:
     Content *ui = nullptr;
     HWND sourceEdit = nullptr, resultEdit = nullptr;
+    ~TranslateWindow() override { delete ui; }
     int gen = 0;
 
     bool Create() {

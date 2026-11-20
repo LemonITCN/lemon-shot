@@ -25,7 +25,7 @@ void Deliver(ls_image img, float scale, int output, POINT originPx);
 bool SaveImage(const ls_image &img, float scale, bool ask, std::wstring &path, std::wstring &error);
 std::wstring ExpandFileName(const std::string &tpl);
 std::wstring SaveFolder();
-std::string SaveFormat();  // 实际使用的格式（webp/heic 退回 png）
+std::string SaveFormat();  // 实际使用的格式（heic 退回 png）
 
 }  // namespace exporter
 }  // namespace ls

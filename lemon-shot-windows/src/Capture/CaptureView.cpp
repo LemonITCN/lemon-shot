@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "Capture/StyleSettings.h"
+#include "Record/SetupPanel.h"
 #include "Settings/I18n.h"
 #include "Settings/Settings.h"
 #include "UI/Controls.h"
@@ -119,7 +120,9 @@ void DrawMagnifier(Canvas &c, const CaptureFrame &f, const ls_session_state &st)
 
 void DrawTips(Canvas &c, const CaptureFrame &f, const ls_session_state &st) {
     std::vector<std::wstring> lines;
-    if (st.has_selection && st.phase == LS_PHASE_SELECTED)
+    if (f.opt.recordMode)
+        lines.push_back(T(st.has_selection && st.phase == LS_PHASE_SELECTED ? "record.tip.adjust" : "record.selectRegion"));
+    else if (st.has_selection && st.phase == LS_PHASE_SELECTED)
         lines.push_back(T("capture.tip.adjust"));
     else {
         lines.push_back(T("capture.tip.select"));
@@ -191,6 +194,7 @@ void LayoutCaptureUi(const CaptureFrame &f, CaptureUi &ui) {
     ui.hasToolbar = false;
     ui.hasPopover = false;
     ui.hasSizeTip = false;
+    ui.hasRecordPanel = false;
     if (f.opt.colorPicker) return;
     // 尺寸提示
     std::wstring tip = f.opt.pinMode ? std::wstring() : SizeTipText(f.session, f.scale);
@@ -209,6 +213,16 @@ void LayoutCaptureUi(const CaptureFrame &f, CaptureUi &ui) {
         ui.sizeEditW = RectF(fx, ui.sizeTip.y + 3, ui.sizeEditFieldW, cap.tipHeight - 6);
         ui.sizeEditH = RectF(ui.sizeTip.r() - cap.tipPaddingX - ui.sizeEditFieldW, ui.sizeTip.y + 3, ui.sizeEditFieldW,
                              cap.tipHeight - 6);
+    }
+    // 录屏模式：录屏设置面板代替工具栏，摆放规则相同
+    if (f.opt.recordMode) {
+        if (ui.recordPanel && st.phase == LS_PHASE_SELECTED && st.has_selection && st.toolbar_visible && !st.dragging_selection) {
+            SizeF ps = ui.recordPanel->Size();
+            ls_rect tr = ls_session_place_toolbar(f.session, ps.w, ps.h, cap.toolbarGap, cap.toolbarScreenMargin);
+            ui.recordPanel->SetRect(RectF(tr), tr.y >= st.selection.y + st.selection.h);
+            ui.hasRecordPanel = true;
+        }
+        return;
     }
     // 工具栏：SELECTED、可见、不在拖动选区
     if (st.phase == LS_PHASE_SELECTED && st.has_selection && st.toolbar_visible && !st.dragging_selection) {
@@ -329,10 +343,11 @@ void RenderCapture(Canvas &c, const CaptureFrame &f, CaptureUi &ui) {
         }
     }
     // 7. 放大镜
-    if (f.opt.showMagnifier && st.show_magnifier && st.mouse_inside) DrawMagnifier(c, f, st);
+    if (f.opt.showMagnifier && !f.opt.recordMode && st.show_magnifier && st.mouse_inside) DrawMagnifier(c, f, st);
     // 8. 左下角提示
     if (f.opt.showTips) DrawTips(c, f, st);
-    // 9. 工具栏、样式面板、提示气泡
+    // 9. 工具栏、样式面板、提示气泡（录屏模式为录屏设置面板）
+    if (ui.hasRecordPanel && ui.recordPanel) ui.recordPanel->Draw(c, f.width, f.height);
     if (ui.hasToolbar) {
         DrawToolbar(c, ui.toolbar, st, ui.hoverBtn, ui.pressedBtn);
         if (ui.hasPopover) {

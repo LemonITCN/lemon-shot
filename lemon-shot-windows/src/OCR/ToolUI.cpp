@@ -218,7 +218,8 @@ void SaveImage(const ls_image &img, float scale) {
 }
 
 void CopyText(const std::wstring &text) {
-    if (CopyTextToClipboard(app::MainHwnd(), text)) toast::Show(T("common.copied"));
+    std::wstring crlf = ReplaceAll(ReplaceAll(text, L"\r\n", L"\n"), L"\n", L"\r\n");
+    if (CopyTextToClipboard(app::MainHwnd(), crlf)) toast::Show(T("common.copied"));
 }
 
 ls_image ShrinkCopy(const ls_image &img, int maxW, int maxH) {
@@ -430,7 +431,19 @@ float LayoutRight(RectF bar, const std::vector<prefs::Widget *> &buttons, float 
 
 // ---------------------------------------------------------------- 工具窗口
 
-ToolWindow::ToolWindow() { g_windows.push_back(this); }
+// 界面外观设置变化（应用的监听者先注册，已经刷新过主题）：重画所有工具窗口
+static void ThemeSettingChanged(void *, const std::string &path) {
+    if (path.empty() || StartsWith(path, "general.theme")) ToolWindow::RefreshAllThemes();
+}
+
+ToolWindow::ToolWindow() {
+    static bool listening = false;
+    if (!listening && !settings::IsSelfTest()) {
+        listening = true;
+        settings::AddListener(&ThemeSettingChanged, nullptr);
+    }
+    g_windows.push_back(this);
+}
 
 ToolWindow::~ToolWindow() {
     for (size_t i = 0; i < g_windows.size(); ++i)
@@ -697,6 +710,7 @@ void ToolWindow::SetHover(prefs::Widget *w) {
 void ToolWindow::OnDestroyed() {
     hover_ = pressed_ = focus_ = nullptr;
     edits_.clear();
+    lastEdit_ = nullptr;
     rt_.Reset();
     OnClosed();
     app::Defer([](void *p) { delete (ToolWindow *)p; }, this);
@@ -772,10 +786,7 @@ LRESULT ToolWindow::Handle(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDBLCLK: {
         float x = MouseX(lp) / s, y = MouseY(lp) / s;
         prefs::Widget *w = root_.HitTest(x, y);
-        if (!w) {
-            SetFocus(hwnd_);
-            return 0;
-        }
+        if (!w) return 0;
         pressed_ = w;
         w->pressed = true;
         SetCapture(hwnd_);
@@ -811,7 +822,15 @@ LRESULT ToolWindow::Handle(UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_COMMAND:
         if (HIWORD(wp) == EN_CHANGE && lp) OnEditChange((HWND)lp);
+        if (HIWORD(wp) == EN_SETFOCUS && lp) lastEdit_ = (HWND)lp;
         return 0;
+    case WM_SETFOCUS: {
+        HWND target = lastEdit_ && IsWindowVisible(lastEdit_) ? lastEdit_ : nullptr;
+        for (HWND e : edits_)
+            if (!target && IsWindowVisible(e)) target = e;
+        if (target) SetFocus(target);
+        return 0;
+    }
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORSTATIC:
         for (HWND e : edits_) {

@@ -21,6 +21,7 @@
 #include "LongShot/LongShot.h"
 #include "OCR/OCR.h"
 #include "Record/Record.h"
+#include "Record/SetupPanel.h"
 #include "Settings/I18n.h"
 #include "Settings/Settings.h"
 #include "Translate/Translate.h"
@@ -230,6 +231,7 @@ bool Overlay::Open(const std::vector<WindowEntry> &windows, const ls_rect *initi
     rt_ = gfx::CreateHwndTarget(hwnd_, shot_->dpi);
     if (rt_) frozen_.Create(rt_.Get(), shot_->img);
     cursor_ = SysCursor(LS_CURSOR_CROSSHAIR);
+    if (opt_.recordMode) CreateRecordPanel();
     // 贴图标注：显示之前先把窗口区域裁好，避免透明区闪一下黑
     if (opt_.pinMode) {
         Layout();
@@ -267,13 +269,49 @@ void Overlay::BuildSession(const ls_rect *initial) {
         if (r.w > 0 && r.h > 0) ls_session_set_last_area(session_, r);
     }
     hotkeys::BindSession(session_);
+    if (opt_.recordMode) {
+        // 录屏模式：单键只保留 F 全屏、D 上次区域、V 开始录制、Tab 显隐面板
+        const ls_binding off[] = {LS_BIND_LONGSHOT, LS_BIND_OCR, LS_BIND_TRANSLATE, LS_BIND_PIN,
+                                  LS_BIND_COPY_RGB, LS_BIND_COPY_HEX, LS_BIND_COPY_CUSTOM};
+        for (int t = LS_TOOL_RECT; t <= LS_TOOL_MAGNIFY; ++t) ls_session_bind_key(session_, (ls_binding)t, 0);
+        for (ls_binding b : off) ls_session_bind_key(session_, b, 0);
+    }
     style::ApplyAll(session_);
     ls_session_set_text_measurer(session_, &gfx::SessionMeasure, nullptr);
+}
+
+void Overlay::CreateRecordPanel() {
+    Overlay *self = this;
+    recordPanel_ = std::make_shared<rec::SetupPanel>(
+        hwnd_, shot_->scale, shot_->dpi, [self]() { self->Redraw(); },
+        [self]() { self->host_->HandleAction(self, LS_ACTION_RECORD); });
+    ui_.recordPanel = recordPanel_.get();
+}
+
+void Overlay::EnterRecordMode() {
+    if (opt_.recordMode || !session_) return;
+    ls_session_state st;
+    ls_session_get_state(session_, &st);
+    ls_rect sel = st.selection;
+    bool has = st.has_selection && st.window_count == 0;
+    DestroyEditors();
+    KillTimer(hwnd_, TIMER_HOVER);
+    opt_.recordMode = true;
+    ui_ = CaptureUi();
+    patches_.Clear();
+    BuildSession(has ? &sel : nullptr);
+    CreateRecordPanel();
+    if (mouseInside)
+        Dispatch(ls_session_mouse_move(session_, lastX_, lastY_, 0) | LS_EV_CURSOR | LS_EV_REDRAW);
+    else
+        ls_session_mouse_exit(session_);
+    Redraw();
 }
 
 void Overlay::ResetSession() {
     DestroyEditors();
     ui_ = CaptureUi();
+    ui_.recordPanel = recordPanel_.get();
     patches_.Clear();
     BuildSession(nullptr);
     if (!mouseInside) ls_session_mouse_exit(session_);
@@ -307,6 +345,8 @@ void Overlay::Paint() {
 bool Overlay::InUiZone(float x, float y) {
     if (ui_.hasToolbar && ui_.toolbar.rect.Inflate(0, theme::Tok().capture.toolbarGap).Contains(x, y)) return true;
     if (ui_.hasPopover && ui_.popoverRect.Inflate(theme::Tok().popover.gap).Contains(x, y)) return true;
+    if (ui_.hasRecordPanel && recordPanel_ && recordPanel_->Rect().Inflate(0, theme::Tok().capture.toolbarGap).Contains(x, y))
+        return true;
     return false;
 }
 
@@ -356,6 +396,13 @@ void Overlay::OnMouseMove(LPARAM lp) {
         return;
     }
     Layout();
+    if (recordPanel_ && !sessionDown_) {
+        bool on = ui_.hasRecordPanel && recordPanel_->MouseMove(x, y);
+        if (on || recordPanel_->Pressed()) {
+            SetCursorShape(SysCursor(LS_CURSOR_ARROW));
+            return;
+        }
+    }
     if (!sessionDown_ && InUiZone(x, y)) {
         int btn = ui_.hasToolbar ? HitToolbar(ui_.toolbar, x, y) : 0;
         int pop = ui_.hasPopover ? HitPopover(ui_.popover, x - ui_.popoverRect.x, y - ui_.popoverRect.y) : -1;
@@ -401,6 +448,10 @@ void Overlay::OnButtonDown(int button, LPARAM lp, int clicks) {
         EndSizeEdit(true);
         return;
     }
+    if (recordPanel_ && ui_.hasRecordPanel && recordPanel_->Rect().Contains(x, y)) {
+        if (button == LS_BUTTON_LEFT && recordPanel_->MouseDown(x, y) && recordPanel_->Pressed()) SetCapture(hwnd_);
+        return;
+    }
     if (button == LS_BUTTON_LEFT && inPopover) {
         int item = HitPopover(ui_.popover, x - ui_.popoverRect.x, y - ui_.popoverRect.y);
         if (item >= 0) {
@@ -443,6 +494,12 @@ void Overlay::OnButtonDown(int button, LPARAM lp, int clicks) {
 
 void Overlay::OnButtonUp(int button, LPARAM lp) {
     float x = LX(lp), y = LY(lp);
+    if (recordPanel_ && recordPanel_->Pressed() && button == LS_BUTTON_LEFT) {
+        std::shared_ptr<rec::SetupPanel> keep = recordPanel_;
+        keep->MouseUp(x, y);  // 可能开始录制并关闭截图层
+        if (GetCapture() == hwnd_) ReleaseCapture();
+        return;
+    }
     if (sliderDrag_ && button == LS_BUTTON_LEFT) {
         sliderDrag_ = false;
         ui_.popPressed = -1;
@@ -835,6 +892,7 @@ LRESULT Overlay::Handle(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_MOUSELEAVE:
         tracking_ = false;
         mouseInside = false;
+        if (recordPanel_) recordPanel_->MouseLeave();
         if (host_->MouseOverlay() == this) host_->SetMouseOverlay(nullptr);
         if (session_ && !sessionDown_) {
             ui_.hoverBtn = 0;
@@ -859,6 +917,7 @@ LRESULT Overlay::Handle(UINT msg, WPARAM wp, LPARAM lp) {
             }
             sliderDrag_ = false;
             ui_.pressedBtn = 0;
+            if (recordPanel_ && recordPanel_->Pressed()) recordPanel_->MouseUp(-1e6f, -1e6f);
         }
         return 0;
     case WM_MOUSEWHEEL: {
@@ -991,7 +1050,7 @@ bool Controller::Open(Mode m) {
             initial = ls_rect{x, y, w, h};
             hasInitial = true;
         }
-        std::unique_ptr<Overlay> o(new Overlay(this, shot, m == Mode::ColorPicker ? 1 : 0));
+        std::unique_ptr<Overlay> o(new Overlay(this, shot, m == Mode::ColorPicker ? 1 : (m == Mode::Record ? 3 : 0)));
         if (!o->Open(snap.windows, hasInitial ? &initial : nullptr)) continue;
         overlays.push_back(std::move(o));
     }
@@ -1240,6 +1299,25 @@ void Controller::HandleAction(Overlay *o, ls_action a) {
     if (mode == Mode::ColorPicker && a != LS_ACTION_CANCEL && a != LS_ACTION_COPY_RGB && a != LS_ACTION_COPY_HEX &&
         a != LS_ACTION_COPY_CUSTOM)
         return;
+    // 录屏模式（spec 8.1）：回车、V、双击选区或「开始录制」开始录制，Esc 取消，其余动作无效
+    if (mode == Mode::Record) {
+        if (a == LS_ACTION_CANCEL) {
+            Close(true);
+        } else if (a == LS_ACTION_DONE || a == LS_ACTION_RECORD || a == LS_ACTION_DOUBLE_CLICK) {
+            ls_session_state st;
+            ls_session_get_state(o->Session(), &st);
+            if (!st.has_selection || st.window_count > 0) return;
+            if (!record::CanStart()) return;  // 缺编码组件等：截图层保持打开，可以改选 GIF
+            int x, y, w, h;
+            ls_session_selection_pixels(o->Session(), &x, &y, &w, &h);
+            RECT r = {o->Shot()->rc.left + x, o->Shot()->rc.top + y, o->Shot()->rc.left + x + w, o->Shot()->rc.top + y + h};
+            HMONITOR mon = o->Shot()->mon;
+            SaveLastArea(o);
+            Close(true);
+            record::StartWithRegion(mon, r);
+        }
+        return;
+    }
     switch (a) {
     case LS_ACTION_CANCEL: Close(true); break;
     case LS_ACTION_DONE:
@@ -1271,8 +1349,16 @@ void Controller::HandleAction(Overlay *o, ls_action a) {
             translate::FromImage(img, scale);
         break;
     }
-    case LS_ACTION_LONGSHOT:
     case LS_ACTION_RECORD: {
+        // 截图工具栏「录屏」/ V：原地换成录屏模式，沿用当前选区
+        ls_session_state st;
+        ls_session_get_state(o->Session(), &st);
+        if (st.window_count > 0) break;
+        mode = Mode::Record;
+        for (auto &ov : overlays) ov->EnterRecordMode();
+        break;
+    }
+    case LS_ACTION_LONGSHOT: {
         ls_session_state st;
         ls_session_get_state(o->Session(), &st);
         if (a == LS_ACTION_LONGSHOT && st.window_count > 0) {
