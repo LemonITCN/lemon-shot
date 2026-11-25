@@ -78,8 +78,9 @@ final class StyleControls {
     }
 
     private func slider(min: Double, max: Double, step: Double, get: @escaping (ls_style) -> Double, set: @escaping (inout ls_style, Double) -> Void, format: @escaping (Double) -> String) -> SliderW {
-        let s = SliderW(min: min, max: max, step: step, value: get(self.get()), trackWidth: Theme.f("popover.sliderWidth") - 36, format: format)
-        s.valueWidth = 34
+        // 数值带单位（如「18 pt」）：数值列放宽，滑块轨道相应缩短，总宽不变
+        let s = SliderW(min: min, max: max, step: step, value: get(self.get()), trackWidth: Theme.f("popover.sliderWidth") - 50, format: format)
+        s.valueWidth = 48
         s.frame.size = CGSize(width: Theme.f("popover.sliderWidth"), height: StyleControls.btn)
         s.onChange = { [weak self] v in self?.change { set(&$0, v) } }
         refreshers.append { [weak s] st in s?.value = get(st) }
@@ -132,9 +133,9 @@ final class StyleControls {
                 row1.append(button(icon: icon, tip: L("style.mosaic.\(v)"), action: { [weak self] in self?.change { $0.variant = Int32(v) } }, selected: { $0.variant == Int32(v) }))
             }
             row2Extra = [label("style.blockSize"),
-                         slider(min: 4, max: 40, step: 1, get: { Double($0.block_size) }, set: { $0.block_size = Float($1) }, format: { String(Int($0)) })]
+                         slider(min: 2, max: 60, step: 1, get: { Double($0.block_size) }, set: { $0.block_size = Float($1) }, format: PrefsPages.points)]
             let brushLabel = label("style.brushSize")
-            let brush = slider(min: 8, max: 80, step: 1, get: { Double($0.line_width) }, set: { $0.line_width = Float($1) }, format: { String(Int($0)) })
+            let brush = slider(min: 4, max: 120, step: 1, get: { Double($0.line_width) }, set: { $0.line_width = Float($1) }, format: PrefsPages.points)
             let always = !includeNext
             refreshers.append { [weak brushLabel, weak brush] st in
                 let show = always || st.variant == 1 || st.variant == 3
@@ -157,7 +158,7 @@ final class StyleControls {
             }
             row1.append(nil)
             row1.append(label("style.fontSize"))
-            row1.append(slider(min: 10, max: 96, step: 1, get: { Double($0.font_size) }, set: { $0.font_size = Float($1) }, format: { String(Int($0)) }))
+            row1.append(slider(min: 8, max: 200, step: 1, get: { Double($0.font_size) }, set: { $0.font_size = Float($1) }, format: PrefsPages.points))
             row1.append(nil)
             row1.append(button(icon: "bold", tip: L("style.bold"), action: { [weak self] in self?.change { $0.bold = $0.bold != 0 ? 0 : 1 } }, selected: { $0.bold != 0 }))
         case 8:
@@ -170,7 +171,7 @@ final class StyleControls {
             }
             row1.append(nil)
             row1.append(label("style.size"))
-            row1.append(slider(min: 16, max: 64, step: 1, get: { Double($0.line_width) }, set: { $0.line_width = Float($1) }, format: { String(Int($0)) }))
+            row1.append(slider(min: 16, max: 64, step: 1, get: { Double($0.line_width) }, set: { $0.line_width = Float($1) }, format: PrefsPages.points))
             guard includeNext else { break }
             row1.append(nil)
             row1.append(label("style.next"))
@@ -181,15 +182,17 @@ final class StyleControls {
             row1.append(stepper)
         case 9:
             row1.append(label("style.opacity"))
-            row1.append(slider(min: 0.2, max: 0.9, step: 0.05, get: { Double($0.opacity) }, set: { $0.opacity = Float($1) }, format: { "\(Int(($0 * 100).rounded()))%" }))
+            row1.append(slider(min: 0.1, max: 0.95, step: 0.05, get: { Double($0.opacity) }, set: { $0.opacity = Float($1) }, format: { "\(Int(($0 * 100).rounded()))%" }))
             row1.append(nil)
             row1.append(textChip(L("style.cornerRadius"), tip: L("style.cornerRadius"), action: { [weak self] in
                 self?.change { $0.corner_radius = $0.corner_radius > 0 ? 0 : AnnotStyles.cornerOn }
             }, selected: { $0.corner_radius > 0 }))
         case 10:
-            for z in AnnotStyles.magnifyZooms {
+            // 滚轮按 0.5 调（1.5–6）：不在档位上时亮最近的一档
+            for (i, z) in AnnotStyles.magnifyZooms.enumerated() {
                 let text = (z == z.rounded() ? String(Int(z)) : String(z)) + "×"
-                row1.append(textChip(text, tip: L("style.zoom"), action: { [weak self] in self?.change { $0.zoom = z } }, selected: { abs($0.zoom - z) < 0.01 }))
+                row1.append(textChip(text, tip: L("style.zoom"), action: { [weak self] in self?.change { $0.zoom = z } },
+                                     selected: { AnnotStyles.nearestLevel($0.zoom, AnnotStyles.magnifyZooms) == i }))
             }
             row1.append(nil)
             row1 += widthLevels()

@@ -134,7 +134,7 @@ bool Session::Begin(HMONITOR m, RECT r) {
     if (gif) {
         // GIF：区域逻辑尺寸（1 倍）× gifScale，不受清晰度影响
         double gs = Clamp(settings::Num("record.gifScale"), 0.1, 1.0);
-        pc.fps = Clamp(settings::Int("record.gifFps"), 1, 50);
+        pc.fps = Clamp(settings::Int("record.gifFps"), 5, 30);  // 与偏好设置的范围一致
         pc.outW = (int)std::lround(pw / s * gs);
         pc.outH = (int)std::lround(ph / s * gs);
         if (pc.outW < 2) pc.outW = 2;

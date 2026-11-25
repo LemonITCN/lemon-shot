@@ -383,7 +383,7 @@ final class SliderW: Control {
     var value: Double { didSet { setNeedsDisplay() } }
     var format: (Double) -> String
     var onChange: ((Double) -> Void)?
-    var valueWidth: CGFloat = 52
+    var valueWidth: CGFloat = 64
     var trackWidth: CGFloat
 
     init(min: Double, max: Double, step: Double, value: Double, trackWidth: CGFloat = 180, format: @escaping (Double) -> String, onChange: ((Double) -> Void)? = nil) {

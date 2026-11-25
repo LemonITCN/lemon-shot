@@ -156,7 +156,7 @@ public:
 class SliderW : public Widget {
 public:
     double minV, maxV, step, value;
-    float trackWidth, valueWidth = 52;
+    float trackWidth, valueWidth = 64;
     std::function<std::wstring(double)> format;
     std::function<void(double)> onChange;
     SliderW(double mn, double mx, double st, double v, float trackW, std::function<std::wstring(double)> fmt,

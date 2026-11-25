@@ -61,6 +61,35 @@ bool RenderSelection(const ls_session *s, const ls_image &base, float scale, ls_
     return off.ReadPixels(out);
 }
 
+bool RenderWindowSelection(const ls_session *s, const ls_image &base, float scale, const ls_image &win, int fx, int fy, ls_image &out) {
+    out = ls_image{nullptr, 0, 0, 0};
+    if (!win.data || win.width <= 0 || win.height <= 0) return false;
+    int x0, y0, w, h;
+    ls_session_selection_pixels(s, &x0, &y0, &w, &h);
+    if (w <= 0 || h <= 0) return false;
+    Offscreen off;
+    if (!off.Create(win.width, win.height, scale)) return false;
+    TiledBitmap frozen, body;
+    if (!frozen.Create(off.RT(), base) || !body.Create(off.RT(), win)) return false;
+    PatchCache patches;
+    ID2D1RenderTarget *rt = off.RT();
+    rt->BeginDraw();
+    {
+        Canvas c(rt);
+        c.Clear(Color{0, 0, 0, 0});
+        body.Draw(c, RectF(0, 0, win.width / scale, win.height / scale), RectF(0, 0, (float)win.width, (float)win.height), true);
+        // 标注按冻结画面的坐标画：平移到窗口左上角
+        c.SetTransform(MatTranslate(-fx / scale, -fy / scale));
+        AnnotationContext ctx;
+        ctx.base = &frozen;
+        ctx.scale = scale;
+        ctx.patches = &patches;
+        DrawAnnotations(c, s, ctx, RectF(x0 / scale, y0 / scale, w / scale, h / scale));
+    }
+    if (FAILED(rt->EndDraw(nullptr, nullptr))) return false;
+    return off.ReadPixels(out);
+}
+
 std::wstring ExpandFileName(const std::string &tpl) {
     SYSTEMTIME t;
     GetLocalTime(&t);

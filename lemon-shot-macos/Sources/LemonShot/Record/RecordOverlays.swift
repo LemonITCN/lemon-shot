@@ -329,7 +329,7 @@ final class KeysOverlay {
 
     init(region: CGRect) {
         let s = Settings.shared
-        maxKeys = max(1, s.int("record.keys.maxKeys"))
+        maxKeys = max(1, min(10, s.int("record.keys.maxKeys"))) // 与偏好设置的范围一致
         fade = max(0.2, s.double("record.keys.fadeMs") / 1000)
         onlyShortcuts = s.bool("record.keys.onlyShortcuts")
         hideRepeats = s.bool("record.keys.hideRepeats")

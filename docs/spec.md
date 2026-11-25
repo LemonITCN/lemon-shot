@@ -130,15 +130,16 @@
   - 直线：粗细三档、虚线开关
   - 箭头：四种样式（用内核几何画的小预览）、粗细三档
   - 画笔：画笔/荧光笔、粗细三档
-  - 马赛克：四种样式（像素块、像素画笔、模糊、模糊画笔），块大小滑块（4–40），画笔样式时多一个笔刷大小滑块（8–80）
-  - 文字：三种样式（普通、描边、底色），字号滑块（10–96），粗体开关
+  - 马赛克：四种样式（像素块、像素画笔、模糊、模糊画笔），块大小滑块（2–60），画笔样式时多一个笔刷大小滑块（4–120）
+  - 文字：三种样式（普通、描边、底色），字号滑块（8–200），粗体开关
   - 序号：三种样式，大小滑块（16–64），「下一个」数字步进
-  - 局部高亮：遮罩深浅滑块（0.2–0.9），圆角开关
-  - 放大镜：倍数四档（1.5、2、3、4），边框粗细三档（写 `annotate.magnify.lineWidth`）
+  - 局部高亮：遮罩深浅滑块（0.1–0.95），圆角开关
+  - 放大镜：倍数四档（1.5、2、3、4，滚轮调出的值不在档上时高亮最接近的一档），边框粗细三档（写 `annotate.magnify.lineWidth`）、颜色
+  - 滑块范围与滚轮范围一致（见 session-behavior「滚轮」）；长度类数值带单位显示（`common.points`，如「18 pt」）
 - 马赛克没有颜色，第 2 行放块大小/笔刷大小滑块；序号的「下一个」只在本次截图内有效，不写回设置。
 - 第 2 行（局部高亮、马赛克除外）：`annotate.palette` 10 个色块（直径 `swatch`，间距 `swatchGap`，选中加 2pt `accent` 外环）+ 自定义颜色（打开系统取色面板）。
 - 右上角 `info` 图标，悬停显示 `style.hint`。
-- 改动立即 `ls_session_set_style`，并写回设置 `annotate.<tool>`（下次截图沿用）。
+- 改动立即 `ls_session_set_style`，并写回设置 `annotate.<tool>`（下次截图沿用）；滚轮调的样式（`LS_EV_TOOL`）同样写回。
 
 ### 2.5 标注绘制（两端严格一致）
 
@@ -190,6 +191,7 @@
 | 功能 | 行为 |
 |---|---|
 | 窗口阴影参数 | `ls_image_frame(radius = windowCornerRadius·scale, shadow_radius = windowShadowRadius·scale, shadow_offset_y = round(windowShadowRadius/3)·scale, shadow = windowShadowColor)`；输出四周各留 ceil(shadow_radius + |offset_y|) 像素透明边，原图位于 (pad, pad) |
+| 单击选中的窗口 | 截图层里单击（或回车）选中窗口且选区没再拖动、拉伸（`selection_window` 非 0）时，复制、保存按窗口截图输出：窗口自己的画面（Mac `desktopIndependentWindow`；Windows `PrintWindow`）铺底，叠上标注（裁到选区内），按 `capture.windowCorners/Shadow` 加圆角阴影；截不到窗口画面时用冻结画面裁剪再加圆角阴影。圆角阴影都关、贴图、文字识别、翻译，以及菜单栏、程序坞、任务栏照普通选区 |
 | 截取光标下窗口 | 不进截图层，直接截光标下最上层窗口（Mac `SCScreenshotManager` 用 `desktopIndependentWindow`；macOS 11–13 `CGWindowListCreateImage(.optionIncludingWindow)`；Windows `PrintWindow(PW_RENDERFULLCONTENT)`，失败退回屏幕裁剪），按 `capture.windowCorners/Shadow` 用 `ls_image_frame` 加圆角阴影，然后按 `enterAction` 输出 |
 | 截取全屏 | 光标所在屏整屏，按 `enterAction` 输出 |
 | 截取上次区域 | 进截图层，直接以上次区域为选区（`has_initial_selection`） |
@@ -312,8 +314,8 @@
 | 通用 `settings` | 语言、开机启动、显示菜单栏/托盘图标、截图音效、界面外观；底部按钮：导出设置、导入设置、恢复默认 |
 | 截图 `crop` | 自动识别窗口、截入光标、十字辅助线、放大镜、操作提示 + 提示颜色、右键直接退出、切回原应用、工具设置弹出延迟（滑块 0–1500ms）、双击选区、连按两下修饰键、打开方式、预设尺寸（宽×高）、延时时长；分组「窗口截图」：圆角+半径、阴影+半径+颜色；分组「多窗口截图」：圆角、阴影 |
 | 标注 `pencil` | 调色板 10 色可逐个改；各工具默认粗细/样式（与样式面板一致） |
-| 保存 `download` | 回车键、保存时同时复制、保存位置、每次询问、格式、品质（jpg 时）、分辨率、文件名模板（下面实时显示示例）、颜色描述文件 |
-| 贴图 `pin` | 圆角+半径、阴影、默认不透明度、双击关闭、所有桌面、显示按钮、贴图库最多保存（10–500） |
+| 保存 `download` | 回车键、保存时同时复制、保存位置、每次询问、格式、品质（jpg 时）、分辨率、文件名模板（下面实时显示示例）、颜色描述文件（只有 Mac；Windows 一律 sRGB 不显示） |
+| 贴图 `pin` | 圆角+半径（0–9999 pt，按图片短边一半封顶）、阴影、默认不透明度、双击关闭、所有桌面（Windows 7/8.1 不显示，改了立即作用到已打开的贴图）、显示按钮、贴图库最多保存（10–500） |
 | 取色 `pipette` | 色彩空间、HEX 带 #、HEX 大写、自定义格式（`info` 说明占位符）+ 实时示例 |
 | 识别与翻译 `scan-text` | OCR 各开关；翻译服务下拉、默认译为；所选服务的密钥字段 + 「测试」按钮 |
 | 录屏 `video` | 保存位置、格式、清晰度、帧率、GIF 帧率与尺寸、麦克风设备、系统声音、摄像头设备与形状、光标、点击、按键分组（外观、大小、消失延迟、最多显示、只显示快捷键、不显示重复、位置）、倒计时、录制时长、录完之后 |
@@ -323,6 +325,8 @@
 | 关于 `info` | 图标、名称、版本、`about.tagline`、官网、源代码、开源许可、第三方组件（弹窗列出 Lucide ISC、libwebp BSD、zxing-cpp Apache-2.0、ncnn BSD、PaddleOCR 模型 Apache-2.0） |
 
 设置变更立即生效、立即写盘。
+
+数值都带单位：长度用 `common.points`（pt，逻辑点，用时乘屏幕缩放；行尾 `info` 说明 `pref.unit.pointsInfo`），预设尺寸是实际像素用 `common.pixels`，时间 `common.ms`/`common.seconds`，个数 `common.count`/`common.items`。窗口截图圆角 0–9999 pt（内核按图片短边一半封顶），阴影 0–200 pt；GIF 尺寸行尾 `info` 说明百分比按屏幕上的大小算（`pref.record.gifScaleInfo`）。代码里读设置时按同样的范围夹取。
 
 ## 12. 菜单栏 / 托盘菜单
 

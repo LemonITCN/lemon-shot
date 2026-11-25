@@ -18,6 +18,10 @@ int OutputFromSetting(const std::string &v);
 // 选区像素矩形内的冻结画面 + 标注（与屏幕同一套绘制代码）；out 用 ls_image_free
 bool RenderSelection(const ls_session *s, const ls_image &base, float scale, ls_image &out);
 
+// 截图层里单击选中的窗口：窗口自己的画面 win 铺底（被挡住的部分也完整），叠上标注（裁到选区内）。
+// fx、fy：窗口左上角在本屏截图里的像素位置（可超出屏幕）；out 与 win 同尺寸，用 ls_image_free
+bool RenderWindowSelection(const ls_session *s, const ls_image &base, float scale, const ls_image &win, int fx, int fy, ls_image &out);
+
 // 交付：接管 img 的所有权。originPx 为图片左上角在屏幕上的像素位置（贴图用）
 void Deliver(ls_image img, float scale, int output, POINT originPx);
 

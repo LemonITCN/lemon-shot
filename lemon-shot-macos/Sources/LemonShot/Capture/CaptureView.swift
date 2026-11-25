@@ -260,6 +260,10 @@ final class CaptureView: NSView {
         lastChrome = CaptureRender.dirtyRects(session: session, state: st)
         lastState = st
 
+        // 滚轮等改了样式：写回设置，下次截图沿用（spec 2.3；「下一个」序号不写回，save 本身不写它）
+        if ev & Int32(LS_EV_TOOL) != 0, !force, st.tool >= 1, st.tool <= 10 {
+            AnnotStyles.save(session.style(st.tool), for: st.tool)
+        }
         if ev & Int32(LS_EV_CURSOR) != 0 || force { updateCursor(st) }
         layoutChrome(st, ev: ev, force: force)
         if ev & Int32(LS_EV_TEXT_BEGIN) != 0 { beginTextEditing() }

@@ -406,7 +406,20 @@ void enter_selected(ls_session *s, ls_rect r) {
     s->has_sel = true;
     s->phase = LS_PHASE_SELECTED;
     s->has_hover = false;
+    s->sel_window = 0;
     ++s->sel_version;
+}
+
+// 选区 = 悬停高亮（单击或回车）；悬停的是窗口时记下它，导出时按窗口截图加圆角阴影
+void select_hover(ls_session *s) {
+    const bool window = s->has_hover && s->hover_is_window;
+    const int64_t id = s->hover_id;
+    s->multi.clear();
+    enter_selected(s, s->has_hover ? s->hover : full_screen(s));
+    if (window) {
+        s->sel_window = id;
+        s->sel_window_rect = s->sel;
+    }
 }
 
 void reset_to_selecting(ls_session *s) {
@@ -414,6 +427,7 @@ void reset_to_selecting(ls_session *s) {
     s->sel = rc(0, 0, 0, 0);
     s->phase = LS_PHASE_SELECTING;
     s->multi.clear();
+    s->sel_window = 0;
     ++s->sel_version;
 }
 
@@ -702,6 +716,7 @@ void start_drag(ls_session *s) {
     case LSK_T_NEW_SEL:
         s->drag = LSK_DRAG_NEW_SEL;
         s->multi.clear();
+        s->sel_window = 0;
         s->selected_id = 0;
         s->phase = LS_PHASE_SELECTING;
         s->has_sel = true;
@@ -896,8 +911,7 @@ int handle_click(ls_session *s) {
             if (s->has_hover && s->hover_is_window) toggle_window(s, s->hover_id);
             return 0;
         }
-        s->multi.clear();
-        enter_selected(s, s->has_hover ? s->hover : full_screen(s));
+        select_hover(s);
         return 0;
     }
     if (!s->multi.empty() && shift) {
@@ -1475,10 +1489,7 @@ int32_t ls_session_key_down(ls_session *s, int32_t key, int32_t mods) {
     if (key == LS_KEY_ESCAPE) {
         push_action(s, LS_ACTION_CANCEL);
     } else if (key == LS_KEY_ENTER) {
-        if (!selected && !s->pressed) {
-            s->multi.clear();
-            enter_selected(s, s->has_hover ? s->hover : full_screen(s));
-        }
+        if (!selected && !s->pressed) select_hover(s);
         if (s->phase == LS_PHASE_SELECTED) push_action(s, LS_ACTION_DONE);
     } else if (sel_drag && key >= '0' && key <= '9') {
         // 拖出或拉伸选区时数字键锁比例
@@ -1649,6 +1660,8 @@ void ls_session_get_state(const ls_session *s, ls_session_state *out) {
     out->editing_text = s->editing_id;
     out->window_count = (int32_t)s->multi.size();
     out->shape_count = (int32_t)s->shapes.size();
+    if (s->sel_window && s->has_sel && s->phase == LS_PHASE_SELECTED && s->multi.empty() && rect_eq(s->sel, s->sel_window_rect))
+        out->selection_window = s->sel_window;
 }
 
 void ls_session_selection_pixels(const ls_session *s, int32_t *x, int32_t *y, int32_t *w, int32_t *h) {

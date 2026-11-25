@@ -186,6 +186,52 @@ TEST(session_drag_threshold_and_click_selects_hover) {
     CHECK_EQ(st.phase, LS_PHASE_SELECTED);
     CHECK(rect_is(st.selection, 100, 100, 300, 200));
     CHECK_EQ(st.window_count, 0);
+    CHECK_EQ(st.selection_window, 7);
+}
+
+TEST(session_selection_window) {
+    Fx f;
+    set_windows(f, {{7, {100, 100, 300, 200}}, {8, {900, 700, 300, 300}}});
+    // 单击窗口：记下窗口；移动选区后不再算这个窗口
+    f.move(150, 150);
+    f.click(150, 150);
+    CHECK_EQ(f.st().selection_window, 7);
+    f.drag(200, 200, 230, 210);
+    CHECK_EQ(f.st().selection_window, 0);
+    // 拉伸后也不算
+    Fx g;
+    set_windows(g, {{7, {100, 100, 300, 200}}});
+    g.move(150, 150);
+    g.click(150, 150);
+    g.drag(400, 200, 450, 200); // 右边中点
+    CHECK_EQ(g.st().selection_window, 0);
+    // 拖出的选区和整屏都不是窗口；夹到屏内的窗口照样算
+    Fx h;
+    set_windows(h, {{8, {900, 700, 300, 300}}});
+    h.drag(100, 100, 400, 300);
+    CHECK_EQ(h.st().selection_window, 0);
+    Fx k;
+    set_windows(k, {{8, {900, 700, 300, 300}}});
+    k.move(500, 100);
+    k.click(500, 100);
+    CHECK_EQ(k.st().selection_window, 0);
+    Fx m;
+    set_windows(m, {{8, {900, 700, 300, 300}}});
+    m.move(950, 750);
+    m.key(LS_KEY_ENTER);
+    CHECK_EQ(m.st().selection_window, 8);
+    CHECK(rect_is(m.st().selection, 900, 700, 100, 100));
+    // 右键清空后重新拖出：不再是窗口
+    m.down(500, 400, 0, 1, LS_BUTTON_RIGHT);
+    m.up(500, 400, 0, LS_BUTTON_RIGHT);
+    CHECK_EQ(m.st().selection_window, 0);
+    // Shift 多选不是单窗口
+    Fx n;
+    set_windows(n, {{7, {100, 100, 300, 200}}});
+    n.move(150, 150);
+    n.click(150, 150, SHIFT);
+    CHECK_EQ(n.st().window_count, 1);
+    CHECK_EQ(n.st().selection_window, 0);
 }
 
 TEST(session_too_small_selection_discarded) {

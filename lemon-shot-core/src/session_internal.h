@@ -163,6 +163,9 @@ struct ls_session {
     ls_rect hover{0, 0, 0, 0};
     bool hover_is_window = false;
     int64_t hover_id = 0;
+    // 单击（或回车）选中窗口时记下窗口编号与当时的选区；选区一变就不再算这个窗口
+    int64_t sel_window = 0;
+    ls_rect sel_window_rect{0, 0, 0, 0};
 
     float mx = 0, my = 0;
     bool inside = false;

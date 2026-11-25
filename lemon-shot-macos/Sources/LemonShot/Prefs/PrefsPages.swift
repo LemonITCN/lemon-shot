@@ -55,6 +55,8 @@ enum PrefsPages {
     private static func ms(_ v: Double) -> String { L("common.ms", ["n": String(Int(v))]) }
     private static func seconds(_ v: Double) -> String { L("common.seconds", ["n": String(Int(v))]) }
     private static func percent(_ v: Double) -> String { L("common.percent", ["n": String(Int(v.rounded()))]) }
+    /// 长度（逻辑点，用时乘屏幕缩放）
+    static func points(_ v: Double) -> String { L("common.points", ["n": String(Int(v))]) }
 
     // MARK: 通用
 
@@ -121,8 +123,11 @@ enum PrefsPages {
         p.row(L("pref.capture.delaySound"), Bind.toggle("capture.delaySound"))
 
         p.group(L("pref.capture.window"))
-        p.row(L("pref.capture.windowCorners"), [Bind.toggle("capture.windowCorners"), Bind.stepper("capture.windowCornerRadius", min: 0, max: 40)])
-        p.row(L("pref.capture.windowShadow"), [Bind.toggle("capture.windowShadow"), Bind.stepper("capture.windowShadowRadius", min: 0, max: 80)])
+        // 圆角不设上限（内核按图片短边的一半封顶）；阴影太大没有意义且模糊很慢，到 200
+        p.row(L("pref.capture.windowCorners"), [Bind.toggle("capture.windowCorners"), Bind.stepper("capture.windowCornerRadius", min: 0, max: 9999, width: 136, format: points)],
+              info: L("pref.unit.pointsInfo"))
+        p.row(L("pref.capture.windowShadow"), [Bind.toggle("capture.windowShadow"), Bind.stepper("capture.windowShadowRadius", min: 0, max: 200, width: 136, format: points)],
+              info: L("pref.unit.pointsInfo"))
         p.row(L("pref.capture.shadowColor"), Bind.color("capture.windowShadowColor", alpha: true))
 
         p.group(L("pref.capture.multiWindow"))
@@ -213,7 +218,9 @@ enum PrefsPages {
     // MARK: 贴图
 
     private static func pin(_ p: FormPage) {
-        p.row(L("pref.pin.corners"), [Bind.toggle("pin.corners"), Bind.stepper("pin.cornerRadius", min: 0, max: 40)])
+        p.row(L("pref.pin.corners"), [Bind.toggle("pin.corners"), Bind.stepper("pin.cornerRadius", min: 0, max: 9999, width: 136, format: points) { _ in
+            for w in PinManager.shared.pins { w.refreshAppearance() }
+        }], info: L("pref.unit.pointsInfo"))
         p.row(L("pref.pin.shadow"), Bind.toggle("pin.shadow"))
         p.row(L("pref.pin.opacity"), Bind.slider("pin.opacity", min: 10, max: 100, step: 5, scale: 100, format: percent))
         p.row(L("pref.pin.doubleClickCloses"), Bind.toggle("pin.doubleClickCloses"))
@@ -280,7 +287,8 @@ enum PrefsPages {
         p.row(L("record.quality"), Bind.segmented("record.quality", ["ultra", "high", "standard"], ["ultra", "high", "standard"].map { L("record.quality.\($0)") }))
         p.row(L("record.fps"), Bind.segmented("record.fps", ["15", "24", "30", "60"], ["15", "24", "30", "60"]))
         p.row(L("pref.record.gifFps"), Bind.stepper("record.gifFps", min: 5, max: 30, format: { L("common.fps", ["n": String(Int($0))]) }))
-        p.row(L("pref.record.gifScale"), Bind.segmented("record.gifScale", ["1", "0.75", "0.5"], ["100%", "75%", "50%"].map { L("common.percent", ["n": String($0.dropLast())]) }))
+        p.row(L("pref.record.gifScale"), Bind.segmented("record.gifScale", ["1", "0.75", "0.5"], ["100%", "75%", "50%"].map { L("common.percent", ["n": String($0.dropLast())]) }),
+              info: L("pref.record.gifScaleInfo"))
         p.row(L("pref.record.microphoneDevice"), Bind.dropdown("record.microphoneDevice", deviceOptions(audio: true), width: 260))
         p.row(L("record.systemAudio"), RecordUI.systemAudioSwitch("record.systemAudio"))
         p.row(L("pref.record.cameraDevice"), Bind.dropdown("record.cameraDevice", deviceOptions(audio: false), width: 260))
@@ -293,7 +301,7 @@ enum PrefsPages {
         p.row(L("pref.record.keys.theme"), Bind.segmented("record.keys.theme", ["auto", "light", "dark"], [L("common.auto"), L("pref.general.theme.light"), L("pref.general.theme.dark")]))
         p.row(L("pref.record.keys.size"), Bind.segmented("record.keys.size", ["small", "medium", "large"], ["small", "medium", "large"].map { L("pref.record.keys.size.\($0)") }))
         p.row(L("pref.record.keys.fade"), Bind.slider("record.keys.fadeMs", min: 500, max: 5000, step: 100, format: ms))
-        p.row(L("pref.record.keys.max"), Bind.stepper("record.keys.maxKeys", min: 1, max: 10))
+        p.row(L("pref.record.keys.max"), Bind.stepper("record.keys.maxKeys", min: 1, max: 10, format: { L("common.count", ["n": String(Int($0))]) }))
         p.row(L("pref.record.keys.onlyShortcuts"), Bind.toggle("record.keys.onlyShortcuts"))
         p.row(L("pref.record.keys.hideRepeats"), Bind.toggle("record.keys.hideRepeats"))
         p.row(L("pref.record.keys.position"), Bind.dropdown("record.keys.position", ["bottomCenter", "bottomLeft", "bottomRight", "topCenter"].map { Option($0, L("pref.record.keys.position.\($0)")) }))

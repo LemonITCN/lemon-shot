@@ -222,6 +222,18 @@ final class CaptureController: CaptureViewDelegate {
             }
             return
         }
+        // 单击选中的窗口：按窗口截图加圆角阴影（贴图自己有圆角阴影，照普通选区）
+        if kind != .pin, st.selection_window != 0, let info = globalWindows.first(where: { Int64($0.id) == st.selection_window }) {
+            let origin = CGDisplayBounds(e.displayID).origin
+            if let shot = CaptureModes.prepareWindowShot(session: view.session, window: info, displayOrigin: origin) {
+                close()
+                shot { [weak self] result in
+                    if let r = result { Export.output(r, kind, pinFrame: nil) }
+                    self?.restorePreviousApp()
+                }
+                return
+            }
+        }
         guard let r = Export.render(session: view.session) else { cancel(); return }
         let frame = globalRect(st.selection.cg, on: e)
         close()

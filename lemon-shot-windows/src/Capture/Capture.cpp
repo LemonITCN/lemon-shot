@@ -105,8 +105,10 @@ public:
     bool Open(Mode m);
     void RestoreFocus();
     void Output(Overlay *o, int kind);
-    bool RenderImage(Overlay *o, ls_image &img, POINT &origin);
+    // windowFrame：单击选中的窗口按窗口截图加圆角阴影（复制、保存时；贴图、识别不加）
+    bool RenderImage(Overlay *o, ls_image &img, POINT &origin, bool windowFrame = false);
     bool ComposeWindows(Overlay *o, ls_image &img, POINT &origin);
+    bool RenderClickedWindow(Overlay *o, int64_t id, ls_image &img, POINT &origin);
     void SaveLastArea(Overlay *o);
 
     std::vector<Overlay *> Overlays() override {
@@ -1151,10 +1153,11 @@ void Controller::SaveLastArea(Overlay *o) {
     settings::SaveState();
 }
 
-bool Controller::RenderImage(Overlay *o, ls_image &img, POINT &origin) {
+bool Controller::RenderImage(Overlay *o, ls_image &img, POINT &origin, bool windowFrame) {
     ls_session_state st;
     ls_session_get_state(o->Session(), &st);
     if (st.window_count > 0) return ComposeWindows(o, img, origin);
+    if (windowFrame && st.selection_window != 0 && RenderClickedWindow(o, st.selection_window, img, origin)) return true;
     int x, y, w, h;
     ls_session_selection_pixels(o->Session(), &x, &y, &w, &h);
     origin.x = o->Shot()->rc.left + x;
@@ -1226,12 +1229,57 @@ bool Controller::ComposeWindows(Overlay *o, ls_image &img, POINT &origin) {
     return true;
 }
 
+// 截图层里单击选中的窗口（spec 2.9）：PrintWindow 截窗口自己的画面叠上标注，按 capture.windowCorners/Shadow 加圆角阴影；
+// 截不到窗口画面时用冻结画面的裁剪。圆角阴影都关着、或是任务栏时返回 false，照普通选区导出
+bool Controller::RenderClickedWindow(Overlay *o, int64_t id, ls_image &img, POINT &origin) {
+    bool corners = settings::Bool("capture.windowCorners");
+    bool shadow = settings::Bool("capture.windowShadow");
+    if (!corners && !shadow) return false;
+    HWND h = (HWND)(intptr_t)id;
+    if (!IsWindow(h)) return false;
+    wchar_t cls[64] = {};
+    GetClassNameW(h, cls, 63);
+    if (wcscmp(cls, L"Shell_TrayWnd") == 0 || wcscmp(cls, L"Shell_SecondaryTrayWnd") == 0) return false;
+    MonitorShot *shot = o->Shot();
+    float scale = shot->scale;
+    ls_image body = {}, win = {};
+    RECT frame;
+    bool ok = false;
+    if (CaptureWindowImage(h, win, &frame, false)) {
+        ok = exporter::RenderWindowSelection(o->Session(), shot->img, scale, win, frame.left - shot->rc.left, frame.top - shot->rc.top, body);
+        ls_image_free(&win);
+        if (ok) origin = {frame.left, frame.top};
+    }
+    if (!ok) {
+        int x, y, w, hh;
+        ls_session_selection_pixels(o->Session(), &x, &y, &w, &hh);
+        if (!exporter::RenderSelection(o->Session(), shot->img, scale, body)) return false;
+        origin = {shot->rc.left + x, shot->rc.top + y};
+    }
+    float radius = corners ? settings::Num("capture.windowCornerRadius") * scale : 0;
+    float sr = shadow ? settings::Num("capture.windowShadowRadius") * scale : 0;
+    float soff = shadow ? (float)std::lround(settings::Num("capture.windowShadowRadius") / 3) * scale : 0;
+    if (radius > 0 || sr > 0) {
+        ls_color sc = style::ToLs(ParseColor(settings::Str("capture.windowShadowColor"), Color{0, 0, 0, 0.4f}));
+        ls_image framed;
+        if (ls_image_frame(&body, radius, sr, soff, sc, &framed) == 0 && framed.data) {
+            int pad = (framed.width - body.width) / 2;
+            origin.x -= pad;
+            origin.y -= pad;
+            ls_image_free(&body);
+            body = framed;
+        }
+    }
+    img = body;
+    return true;
+}
+
 void Controller::Output(Overlay *o, int kind) {
     if (kind == exporter::OUT_NONE) return;
     ls_image img;
     POINT origin = {0, 0};
     float scale = o->Shot()->scale;
-    bool ok = RenderImage(o, img, origin);
+    bool ok = RenderImage(o, img, origin, kind != exporter::OUT_PIN);
     SaveLastArea(o);
     bool ask = settings::Bool("save.askLocation") &&
                (kind == exporter::OUT_SAVE || kind == exporter::OUT_BOTH || kind == exporter::OUT_SAVE_OPEN);

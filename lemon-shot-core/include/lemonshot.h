@@ -272,6 +272,7 @@ typedef struct {
     int32_t editing_text;        /* 正在编辑文字的标注 id，没有为 0 */
     int32_t window_count;        /* Shift 多选的窗口数，0 表示普通选区 */
     int32_t shape_count;
+    int64_t selection_window;    /* 选区正好是单击（或回车）选中的那个窗口时为它的编号；拖出、拉伸、移动过选区后为 0 */
 } ls_session_state;
 
 void ls_session_get_state(const ls_session *s, ls_session_state *out);

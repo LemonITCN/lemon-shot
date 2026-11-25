@@ -23,6 +23,7 @@ struct CaptureOptions {
     Color tipsColor{0.92f, 0.35f, 0.32f, 1};
     bool hexPrefix = true;
     bool hexUpper = true;
+    int colorTarget = -1;  // color.space 换算目标（LS_SPACE_*），-1 不换算（屏幕按 sRGB）
     bool colorPicker = false;  // 取色模式：只有放大镜
     bool pinMode = false;      // 贴图标注：没有遮罩、选区框、尺寸提示、放大镜与提示，工具栏用贴图版
     bool recordMode = false;   // 录屏模式（spec 8.1）：没有放大镜，工具栏换成录屏设置面板

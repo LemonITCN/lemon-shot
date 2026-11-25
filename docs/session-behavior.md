@@ -16,10 +16,10 @@
 |---|---|
 | 移动 | `hover` = 包含光标的最上层窗口（`detect_windows` 关闭或都不包含时 = 整屏），夹到屏内；光标 `CROSSHAIR`；`show_magnifier` = 1 |
 | 左键拖动 | 从按下点拉出选区（`dragging_selection`），Shift 锁定 1:1，拖动中按数字键锁定比例（见下），松开后选区 ≥ 最小尺寸则进入 SELECTED，否则回到 SELECTING |
-| 左键单击 | 无 Shift：选区 = `hover`，进入 SELECTED。按住 Shift：把 hover 窗口加入/移出多选集合（整屏 hover 不能多选），选区 = 集合外接矩形，`window_count` = 集合大小，进入 SELECTED；集合清空时回到 SELECTING |
+| 左键单击 | 无 Shift：选区 = `hover`，进入 SELECTED；`hover` 是窗口时 `selection_window` = 该窗口编号（之后拖出、拉伸、移动选区或回到 SELECTING 即变 0，平台据此按窗口截图加圆角阴影）。按住 Shift：把 hover 窗口加入/移出多选集合（整屏 hover 不能多选），选区 = 集合外接矩形，`window_count` = 集合大小，进入 SELECTED；集合清空时回到 SELECTING |
 | 右键 | `CANCEL` |
 | Esc | `CANCEL` |
-| 回车 | 选区 = `hover`，进入 SELECTED，再发 `DONE` |
+| 回车 | 选区 = `hover`（同单击，记 `selection_window`），进入 SELECTED，再发 `DONE` |
 | F（绑定） | 选区 = 整屏，进入 SELECTED |
 | D（绑定） | 有上次区域：选区 = 上次区域（夹到屏内），进入 SELECTED；没有：发 `LAST_AREA` |
 | R/H/C（绑定） | 发 `COPY_RGB` / `COPY_HEX` / `COPY_CUSTOM` |

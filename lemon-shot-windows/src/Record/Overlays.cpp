@@ -385,7 +385,7 @@ LRESULT ClickRipples::Handle(UINT msg, WPARAM wp, LPARAM lp) {
 bool KeysWindow::Init(RECT region, UINT dpi) {
     region_ = region;
     dpi_ = dpi;
-    maxKeys_ = Clamp(settings::Int("record.keys.maxKeys"), 1, 20);
+    maxKeys_ = Clamp(settings::Int("record.keys.maxKeys"), 1, 10);  // 与偏好设置的范围一致
     fade_ = settings::Num("record.keys.fadeMs") / 1000.0;
     if (fade_ < 0.2) fade_ = 0.2;
     onlyShortcuts_ = settings::Bool("record.keys.onlyShortcuts");

@@ -143,6 +143,9 @@ final class PinWindow: NSPanel {
 
     var allDesktops = false
 
+    /// 偏好设置里改了圆角大小：已打开的贴图立刻重画
+    func refreshAppearance() { host.needsDisplay = true }
+
     func applyAllDesktops(_ on: Bool) {
         allDesktops = on
         collectionBehavior = on ? [.canJoinAllSpaces, .fullScreenAuxiliary] : [.managed, .fullScreenAuxiliary]

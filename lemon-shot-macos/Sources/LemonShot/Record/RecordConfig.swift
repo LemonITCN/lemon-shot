@@ -34,7 +34,7 @@ struct RecordConfig {
         c.format = s.string("record.format") == "gif" ? "gif" : "mp4"
         c.quality = s.string("record.quality")
         c.fps = clampFps(s.int("record.fps"))
-        c.gifFps = max(1, min(50, s.int("record.gifFps")))
+        c.gifFps = max(5, min(30, s.int("record.gifFps"))) // 与偏好设置的范围一致
         c.gifScale = max(0.1, min(1, s.double("record.gifScale")))
         c.microphone = s.bool("record.microphone")
         c.microphoneDevice = s.string("record.microphoneDevice")

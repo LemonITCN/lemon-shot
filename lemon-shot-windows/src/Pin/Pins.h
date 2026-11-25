@@ -18,6 +18,8 @@ void HideAll();
 int Count();
 void ShowLibrary();
 void OnSettingsChanged();
+// 偏好设置里改了「在所有桌面显示」：作用到已打开的贴图
+void ApplyAllDesktops(bool on);
 
 // 自测：画一个贴图窗（含按钮、圆角、阴影），返回逻辑尺寸
 RectF PinPreviewSize(float imgW, float imgH);

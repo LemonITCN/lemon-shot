@@ -8,6 +8,7 @@
 #include "App/Hotkeys.h"
 #include "Capture/Export.h"
 #include "Capture/StyleSettings.h"
+#include "Pin/Pins.h"
 #include "Prefs/Widgets.h"
 #include "Record/Devices.h"
 #include "Settings/I18n.h"
@@ -96,6 +97,8 @@ TextFieldW *TextBind(const std::string &key, bool secure = false, float width = 
 std::wstring Ms(double v) { return i18n::T("common.ms", {{"n", FormatW(L"%d", (int)v)}}); }
 std::wstring Seconds(double v) { return i18n::T("common.seconds", {{"n", FormatW(L"%d", (int)v)}}); }
 std::wstring Percent(double v) { return i18n::T("common.percent", {{"n", FormatW(L"%d", (int)std::lround(v))}}); }
+// 长度（逻辑点，用时乘屏幕缩放）
+std::wstring Points(double v) { return i18n::T("common.points", {{"n", FormatW(L"%d", (int)v)}}); }
 
 std::vector<Option> Opts(const std::vector<std::string> &values, const std::string &keyPrefix) {
     std::vector<Option> o;
@@ -224,8 +227,11 @@ void Capture(FormPage *p) {
     p->AddRow(T("pref.capture.delaySound"), Toggle("capture.delaySound"));
 
     p->AddGroup(T("pref.capture.window"));
-    p->AddRow(T("pref.capture.windowCorners"), {Toggle("capture.windowCorners"), Step("capture.windowCornerRadius", 0, 40)});
-    p->AddRow(T("pref.capture.windowShadow"), {Toggle("capture.windowShadow"), Step("capture.windowShadowRadius", 0, 80)});
+    // 圆角不设上限（内核按图片短边的一半封顶）；阴影太大没有意义且模糊很慢，到 200
+    p->AddRow(T("pref.capture.windowCorners"), {Toggle("capture.windowCorners"), Step("capture.windowCornerRadius", 0, 9999, 1, 1, 136, Points)},
+              T("pref.unit.pointsInfo"));
+    p->AddRow(T("pref.capture.windowShadow"), {Toggle("capture.windowShadow"), Step("capture.windowShadowRadius", 0, 200, 1, 1, 136, Points)},
+              T("pref.unit.pointsInfo"));
     p->AddRow(T("pref.capture.shadowColor"), ColorBind("capture.windowShadowColor", true));
 
     p->AddGroup(T("pref.capture.multiWindow"));
@@ -272,16 +278,16 @@ void Save(FormPage *p) {
     refresh(L"");
     p->AddRow(T("pref.save.fileName"), TextBind("save.fileName", false, 300, refresh));
     p->AddValue(example);
-    p->AddRow(T("pref.save.colorProfile"), Seg("save.colorProfile", {"display", "srgb"},
-                                               {T("pref.save.colorProfile.display"), T("pref.save.colorProfile.srgb")}));
+    // 颜色描述文件：Windows 一律按 sRGB 处理（spec 2.8），这一项在 Windows 上不起作用，不显示
 }
 
 void Pin(FormPage *p) {
-    p->AddRow(T("pref.pin.corners"), {Toggle("pin.corners"), Step("pin.cornerRadius", 0, 40)});
+    p->AddRow(T("pref.pin.corners"), {Toggle("pin.corners"), Step("pin.cornerRadius", 0, 9999, 1, 1, 136, Points)}, T("pref.unit.pointsInfo"));
     p->AddRow(T("pref.pin.shadow"), Toggle("pin.shadow"));
     p->AddRow(T("pref.pin.opacity"), Slide("pin.opacity", 10, 100, 5, Percent, 180, 100));
     p->AddRow(T("pref.pin.doubleClickCloses"), Toggle("pin.doubleClickCloses"));
-    p->AddRow(T("pref.pin.allDesktops"), Toggle("pin.allDesktops"));
+    // Win7 / 8.1 没有虚拟桌面：不显示；改了立刻作用到已打开的贴图
+    if (api::IsWin10OrLater()) p->AddRow(T("pref.pin.allDesktops"), Toggle("pin.allDesktops", [](bool v) { pins::ApplyAllDesktops(v); }));
     p->AddRow(T("pref.pin.showButtons"), Toggle("pin.showButtons"));
     p->AddRow(T("pref.pin.libraryMax"), Step("pin.libraryMax", 10, 500, 10, 1, 112, [](double v) {
                   return i18n::T("common.items", {{"n", FormatW(L"%d", (int)v)}});
@@ -373,7 +379,8 @@ void Record(FormPage *p) {
                   return i18n::T("common.fps", {{"n", FormatW(L"%d", (int)v)}});
               }));
     p->AddRow(T("pref.record.gifScale"), Seg("record.gifScale", {"1", "0.75", "0.5"},
-                                             {Percent(100), Percent(75), Percent(50)}));
+                                             {Percent(100), Percent(75), Percent(50)}),
+              T("pref.record.gifScaleInfo"));
     p->AddRow(T("pref.record.microphoneDevice"), Drop("record.microphoneDevice", DeviceOptions(true, "record.microphoneDevice"), 260));
     p->AddRow(T("record.systemAudio"), Toggle("record.systemAudio"));
     p->AddRow(T("pref.record.cameraDevice"), Drop("record.cameraDevice", DeviceOptions(false, "record.cameraDevice"), 260));
@@ -390,7 +397,9 @@ void Record(FormPage *p) {
                                               {T("pref.record.keys.size.small"), T("pref.record.keys.size.medium"),
                                                T("pref.record.keys.size.large")}));
     p->AddRow(T("pref.record.keys.fade"), Slide("record.keys.fadeMs", 500, 5000, 100, Ms));
-    p->AddRow(T("pref.record.keys.max"), Step("record.keys.maxKeys", 1, 10));
+    p->AddRow(T("pref.record.keys.max"), Step("record.keys.maxKeys", 1, 10, 1, 1, 112, [](double v) {
+                  return i18n::T("common.count", {{"n", FormatW(L"%d", (int)v)}});
+              }));
     p->AddRow(T("pref.record.keys.onlyShortcuts"), Toggle("record.keys.onlyShortcuts"));
     p->AddRow(T("pref.record.keys.hideRepeats"), Toggle("record.keys.hideRepeats"));
     p->AddRow(T("pref.record.keys.position"),

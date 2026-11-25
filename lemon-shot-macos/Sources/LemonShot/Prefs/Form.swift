@@ -173,8 +173,9 @@ enum Bind {
         SliderW(min: min, max: max, step: step, value: s.double(key) * scale, trackWidth: width, format: format) { v in s.set(key, .number(((v / scale) * 1000).rounded() / 1000)) }
     }
 
-    static func stepper(_ key: String, min: Double, max: Double, step: Double = 1, scale: Double = 1, width: CGFloat = 112, format: @escaping (Double) -> String = { String(Int($0)) }) -> StepperW {
-        StepperW(min: min, max: max, step: step, value: (s.double(key) / scale).rounded(), width: width, format: format) { v in s.set(key, .number(v * scale)) }
+    static func stepper(_ key: String, min: Double, max: Double, step: Double = 1, scale: Double = 1, width: CGFloat = 112, format: @escaping (Double) -> String = { String(Int($0)) },
+                        onChange: ((Double) -> Void)? = nil) -> StepperW {
+        StepperW(min: min, max: max, step: step, value: (s.double(key) / scale).rounded(), width: width, format: format) { v in s.set(key, .number(v * scale)); onChange?(v) }
     }
 
     static func color(_ key: String, alpha: Bool = false) -> ColorSwatchW {

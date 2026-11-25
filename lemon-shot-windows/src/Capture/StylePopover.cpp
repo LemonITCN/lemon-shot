@@ -17,7 +17,7 @@ const float kZooms[4] = {1.5f, 2.f, 3.f, 4.f};
 const float kDotRadius[3] = {2.f, 3.f, 5.f};  // 粗细三档的圆点（半径）
 const char *kMosaicIcons[4] = {"grid-3x3", "brush", "droplet", "blend"};
 const char *kPenIcons[2] = {"pencil", "highlighter"};
-const float kGap = 4.f, kLabelGap = 6.f, kSepW = 17.f, kValueW = 34.f, kStepperW = 92.f, kIconSize = 18.f;
+const float kGap = 4.f, kLabelGap = 6.f, kSepW = 17.f, kValueW = 48.f, kStepperW = 92.f, kIconSize = 18.f;
 const float kCornerOn = 6.f;
 
 float LabelSize() { return theme::Tok().fontSize.caption + 1; }
@@ -69,7 +69,8 @@ struct Row {
     }
     void Slider(PopField f, float mn, float mx) {
         PopItem &it = Add(PK_SLIDER, f, SliderW());
-        it.track = RectF(it.r.x, it.r.y, SliderW() - 36, h);
+        // 数值带单位（如「18 pt」）：数值列放宽，轨道相应缩短，总宽不变
+        it.track = RectF(it.r.x, it.r.y, SliderW() - 50, h);
         it.min = mn;
         it.max = mx;
     }
@@ -123,14 +124,21 @@ bool IsOn(const PopItem &it, const ls_style &st) {
     case PF_DASHED: return st.variant == 1;
     case PF_BOLD: return st.bold != 0;
     case PF_VARIANT: return st.variant == it.index;
-    case PF_ZOOM: return std::fabs(st.zoom - kZooms[it.index]) < 0.01f;
+    case PF_ZOOM: {
+        // 滚轮按 0.5 调（1.5–6）：不在档位上时亮最近的一档
+        int best = 0;
+        for (int i = 1; i < 4; ++i)
+            if (std::fabs(kZooms[i] - st.zoom) < std::fabs(kZooms[best] - st.zoom)) best = i;
+        return best == it.index;
+    }
     default: return false;
     }
 }
 
 std::wstring ValueText(PopField f, float v) {
     if (f == PF_OPACITY) return FormatW(L"%d%%", (int)std::floor(v * 100.f + 0.5f));
-    return FormatW(L"%d", (int)std::floor(v + 0.5f));
+    // 块大小、笔刷、字号、序号大小都是逻辑点
+    return i18n::T("common.points", {{"n", FormatW(L"%d", (int)std::floor(v + 0.5f))}});
 }
 
 std::wstring ZoomText(int i) { return NumberText(kZooms[i], 1) + L"×"; }
@@ -281,11 +289,11 @@ PopLayout LayoutPopover(int tool, const ls_style &st, bool full) {
         for (int i = 0; i < 4; ++i) r1.Add(PK_VARIANT, PF_VARIANT, rh, i);
         // 马赛克没有颜色：滑块放第 2 行
         r2.Label("style.blockSize");
-        r2.Slider(PF_BLOCK, 4, 40);
+        r2.Slider(PF_BLOCK, 2, 60);
         if (st.variant == 1 || st.variant == 3) {
             r2.Sep();
             r2.Label("style.brushSize");
-            r2.Slider(PF_BRUSH, 8, 80);
+            r2.Slider(PF_BRUSH, 4, 120);
         }
         row2Extra = true;
         break;
@@ -293,7 +301,7 @@ PopLayout LayoutPopover(int tool, const ls_style &st, bool full) {
         for (int i = 0; i < 3; ++i) r1.Add(PK_VARIANT, PF_VARIANT, rh, i);
         r1.Sep();
         r1.Label("style.fontSize");
-        r1.Slider(PF_FONT, 10, 96);
+        r1.Slider(PF_FONT, 8, 200);
         r1.Sep();
         r1.Add(PK_TOGGLE, PF_BOLD, rh).icon = "bold";
         break;
@@ -310,7 +318,7 @@ PopLayout LayoutPopover(int tool, const ls_style &st, bool full) {
         break;
     case LS_TOOL_HIGHLIGHT:
         r1.Label("style.opacity");
-        r1.Slider(PF_OPACITY, 0.2f, 0.9f);
+        r1.Slider(PF_OPACITY, 0.1f, 0.95f);
         r1.Sep();
         r1.Chip(PF_CORNER, T("style.cornerRadius"), 0, "style.cornerRadius");
         break;

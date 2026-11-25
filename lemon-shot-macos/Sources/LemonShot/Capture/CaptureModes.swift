@@ -48,6 +48,47 @@ enum CaptureModes {
         return fz.cgImage
     }
 
+    /// 截图层里单击选中的窗口（spec 2.9）：截窗口自己的画面（被别的窗口挡住的部分也完整、四角透明），叠上标注，
+    /// 按 capture.windowCorners/Shadow 加圆角阴影。截不到窗口画面时退回冻结画面的裁剪再加圆角阴影。
+    /// 圆角阴影都关着、或不是普通窗口（菜单栏、程序坞）时返回 nil，照普通选区导出。
+    /// 标注层和退回用的裁剪在这里画好：会话随截图层一起释放，返回的闭包在截图层关闭后运行。
+    static func prepareWindowShot(session: Session, window: ScreenCapture.WindowInfo, displayOrigin: CGPoint) -> ((@escaping (Export.Result?) -> Void) -> Void)? {
+        let s = Settings.shared
+        let corners = s.bool("capture.windowCorners"), shadow = s.bool("capture.windowShadow")
+        guard corners || shadow, window.layer == 0 else { return nil }
+        let scale = session.scale
+        let local = CGRect(x: window.frame.minX - displayOrigin.x, y: window.frame.minY - displayOrigin.y, width: window.frame.width, height: window.frame.height)
+        let pw = Int((local.width * scale).rounded()), ph = Int((local.height * scale).rounded())
+        guard pw > 0, ph > 0, let fallback = Export.render(session: session, applyResolution: false) else { return nil }
+        let space = session.frozen.colorSpace
+        // 标注层：窗口大小的透明图，坐标与冻结画面一致，裁到选区内
+        var overlay: CGImage?
+        if session.shapeCount > 0, let ctx = Export.bitmapContext(width: pw, height: ph, space: space) {
+            ctx.translateBy(x: 0, y: CGFloat(ph))
+            ctx.scaleBy(x: 1, y: -1)
+            ctx.interpolationQuality = .high
+            ctx.scaleBy(x: scale, y: scale)
+            ctx.translateBy(x: -local.minX, y: -local.minY)
+            ctx.clip(to: session.state.selection.cg)
+            AnnotRender.drawAll(ctx, session: session)
+            overlay = ctx.makeImage()
+        }
+        return { done in
+            ScreenCapture.captureWindow(window.id) { img in
+                var base = fallback.image
+                if let img = img, let ctx = Export.bitmapContext(width: pw, height: ph, space: space) {
+                    let r = CGRect(x: 0, y: 0, width: pw, height: ph)
+                    ctx.interpolationQuality = .high
+                    ctx.draw(img, in: r)
+                    if let o = overlay { ctx.draw(o, in: r) }
+                    if let composed = ctx.makeImage() { base = composed }
+                }
+                let framed = frameWindow(base, scale: scale, corners: corners, shadow: shadow)
+                done(Export.standardize(Export.Result(image: framed, scale: scale)))
+            }
+        }
+    }
+
     /// 多窗口：各窗口单独截图（同单窗口方式）按原位置合成在外接矩形内，透明背景。
     static func composeWindows(_ wins: [ScreenCapture.WindowInfo], scale: CGFloat, completion: @escaping (Export.Result?) -> Void) {
         guard !wins.isEmpty else { completion(nil); return }
@@ -67,8 +108,8 @@ enum CaptureModes {
         let corners = s.bool("capture.multiWindowCorners"), shadow = s.bool("capture.multiWindowShadow")
         var union = CGRect.null
         for w in wins { union = union.union(w.frame) }
-        // 阴影边距：外扩阴影半径
-        let margin = shadow ? CGFloat(s.double("capture.windowShadowRadius")) : 0
+        // 阴影边距：ls_image_frame 每边留 阴影半径 + 向下偏移（半径的 1/3），外扩同样多，底部阴影才不被切掉
+        let margin = shadow ? (CGFloat(s.double("capture.windowShadowRadius")) * 4 / 3).rounded(.up) + 1 : 0
         let canvas = union.insetBy(dx: -margin, dy: -margin)
         let pw = Int((canvas.width * scale).rounded()), ph = Int((canvas.height * scale).rounded())
         guard pw > 0, ph > 0, let ctx = Export.bitmapContext(width: pw, height: ph, space: Theme.sRGB) else { completion(nil); return }

@@ -91,9 +91,18 @@ void DrawMagnifier(Canvas &c, const CaptureFrame &f, const ls_session_state &st)
     // 信息区
     c.FillRect(info, Cap().tipBg);
     ls_color col = ls_session_pixel_at(f.session, st.mouse_x, st.mouse_y);
+    // 读数与复制出去的值一致：按 color.space 换算（色块和颜色名仍按屏幕上的颜色）
+    uint8_t vr = col.r, vg = col.g, vb = col.b;
+    if (f.opt.colorTarget >= 0) {
+        float in[3] = {col.r / 255.f, col.g / 255.f, col.b / 255.f}, out[3];
+        ls_color_convert(LS_SPACE_SRGB, f.opt.colorTarget, in, out);
+        vr = (uint8_t)Clamp((int)std::lround(out[0] * 255), 0, 255);
+        vg = (uint8_t)Clamp((int)std::lround(out[1] * 255), 0, 255);
+        vb = (uint8_t)Clamp((int)std::lround(out[2] * 255), 0, 255);
+    }
     char hex[16] = {0};
-    if (ls_color_hex(col.r, col.g, col.b, f.opt.hexPrefix ? 1 : 0, f.opt.hexUpper ? 1 : 0, hex, sizeof hex) <= 0)
-        snprintf(hex, sizeof hex, f.opt.hexUpper ? "#%02X%02X%02X" : "#%02x%02x%02x", col.r, col.g, col.b);
+    if (ls_color_hex(vr, vg, vb, f.opt.hexPrefix ? 1 : 0, f.opt.hexUpper ? 1 : 0, hex, sizeof hex) <= 0)
+        snprintf(hex, sizeof hex, f.opt.hexUpper ? "#%02X%02X%02X" : "#%02x%02x%02x", vr, vg, vb);
     char name[64] = {0};
     ls_color_name(col.r, col.g, col.b, i18n::Lang(), name, sizeof name);
     Color white = Cap().tipText;
@@ -165,6 +174,10 @@ CaptureOptions CaptureOptions::FromSettings() {
     o.tipsColor = ParseColor(settings::Str("capture.tipsColor"), Color{0.92f, 0.35f, 0.32f, 1});
     o.hexPrefix = settings::Bool("color.hexPrefix");
     o.hexUpper = settings::Bool("color.hexUppercase");
+    {
+        std::string space = settings::Str("color.space");
+        o.colorTarget = space == "p3" ? LS_SPACE_P3 : space == "adobe" ? LS_SPACE_ADOBE : space == "generic" ? LS_SPACE_GENERIC : -1;
+    }
     return o;
 }
 

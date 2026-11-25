@@ -107,6 +107,7 @@ enum AnnotStyles {
             obj["opacity"] = num(st.opacity)
             obj["cornerRadius"] = num(st.corner_radius)
         case 10:
+            obj["color"] = colorJSON(st.color)
             obj["zoom"] = num(st.zoom)
             obj["lineWidth"] = num(st.line_width)
         default: return

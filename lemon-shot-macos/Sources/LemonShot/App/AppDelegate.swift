@@ -55,7 +55,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if all || key.hasPrefix("general.language") { I18n.reloadIfNeeded() }
         if all || key.hasPrefix("general.theme") { applyTheme() }
         if all || key.hasPrefix("general.showStatusIcon") { statusItem?.isVisible = Settings.shared.bool("general.showStatusIcon") }
-        if all || key.hasPrefix("general.launchAtLogin") { if !all { LoginItem.set(Settings.shared.bool("general.launchAtLogin")) } }
+        // 整体变更只来自「恢复默认」「导入」：开机启动跟着设置走，否则开关显示与系统实际不一致
+        if all || key.hasPrefix("general.launchAtLogin") { LoginItem.set(Settings.shared.bool("general.launchAtLogin")) }
         if all || key.hasPrefix("shortcuts") { Hotkeys.shared.registerAll() }
     }
 

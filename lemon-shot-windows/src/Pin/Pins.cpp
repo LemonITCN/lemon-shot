@@ -729,6 +729,10 @@ void OnSettingsChanged() {
     for (auto *p : g_pins) p->Render();
 }
 
+void ApplyAllDesktops(bool on) {
+    for (auto *p : g_pins) p->SetAllDesktops(on);
+}
+
 RectF PinPreviewSize(float imgW, float imgH) {
     float m = Margin();
     return RectF(0, 0, imgW + 2 * m, imgH + 2 * m);
