@@ -131,9 +131,8 @@ struct EnumCtx {
 static BOOL CALLBACK WindowProc(HWND hwnd, LPARAM lp) {
     EnumCtx *ctx = reinterpret_cast<EnumCtx *>(lp);
     if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return TRUE;
-    DWORD pid = 0;
-    GetWindowThreadProcessId(hwnd, &pid);
-    if (pid == ctx->pid) return TRUE;
+    // 本应用自己的偏好设置、贴图、识别结果等窗口也能选中：截图层在收集窗口之后才建，不会选中自己；
+    // 录屏边框等点击穿透的浮层下面按样式排除
     if (IsCloaked(hwnd)) return TRUE;
     wchar_t cls[64] = {};
     GetClassNameW(hwnd, cls, 63);

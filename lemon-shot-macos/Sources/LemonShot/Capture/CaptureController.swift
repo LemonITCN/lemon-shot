@@ -234,7 +234,10 @@ final class CaptureController: CaptureViewDelegate {
                 return
             }
         }
-        guard let r = Export.render(session: view.session) else { cancel(); return }
+        // 区域截图（不是单击选中的窗口）：复制、保存时按 capture.regionCorners/Shadow 加圆角阴影，贴图不加
+        let regionFrame = kind != .pin && st.selection_window == 0 && (Settings.shared.bool("capture.regionCorners") || Settings.shared.bool("capture.regionShadow"))
+        guard var r = Export.render(session: view.session, applyResolution: !regionFrame) else { cancel(); return }
+        if regionFrame { r = Export.standardize(Export.Result(image: CaptureModes.frameRegion(r.image, scale: r.scale), scale: r.scale)) }
         let frame = globalRect(st.selection.cg, on: e)
         close()
         DispatchQueue.main.async { [weak self] in

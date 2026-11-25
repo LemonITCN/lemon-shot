@@ -109,6 +109,7 @@ public:
     bool RenderImage(Overlay *o, ls_image &img, POINT &origin, bool windowFrame = false);
     bool ComposeWindows(Overlay *o, ls_image &img, POINT &origin);
     bool RenderClickedWindow(Overlay *o, int64_t id, ls_image &img, POINT &origin);
+    static void ApplyFrame(ls_image &img, POINT &origin, float scale, const std::string &prefix, bool corners, bool shadow);
     void SaveLastArea(Overlay *o);
 
     std::vector<Overlay *> Overlays() override {
@@ -1162,7 +1163,29 @@ bool Controller::RenderImage(Overlay *o, ls_image &img, POINT &origin, bool wind
     ls_session_selection_pixels(o->Session(), &x, &y, &w, &h);
     origin.x = o->Shot()->rc.left + x;
     origin.y = o->Shot()->rc.top + y;
-    return exporter::RenderSelection(o->Session(), o->Shot()->img, o->Shot()->scale, img);
+    if (!exporter::RenderSelection(o->Session(), o->Shot()->img, o->Shot()->scale, img)) return false;
+    // 区域截图（不是单击选中的窗口）：复制、保存时按 capture.regionCorners/Shadow 加圆角阴影
+    if (windowFrame && st.selection_window == 0)
+        ApplyFrame(img, origin, o->Shot()->scale, "capture.region", settings::Bool("capture.regionCorners"), settings::Bool("capture.regionShadow"));
+    return true;
+}
+
+// 圆角 + 阴影（prefix 下的 CornerRadius、ShadowRadius、ShadowColor，逻辑点乘缩放）；阴影向下偏移取半径的 1/3。
+// 加了阴影图片四周会留边，origin 跟着往左上挪
+void Controller::ApplyFrame(ls_image &img, POINT &origin, float scale, const std::string &prefix, bool corners, bool shadow) {
+    float radius = corners ? settings::Num(prefix + "CornerRadius") * scale : 0;
+    float sr = shadow ? settings::Num(prefix + "ShadowRadius") * scale : 0;
+    float soff = shadow ? (float)std::lround(settings::Num(prefix + "ShadowRadius") / 3) * scale : 0;
+    if (radius <= 0 && sr <= 0) return;
+    ls_color sc = style::ToLs(ParseColor(settings::Str(prefix + "ShadowColor"), Color{0, 0, 0, 0.4f}));
+    ls_image framed;
+    if (ls_image_frame(&img, radius, sr, soff, sc, &framed) == 0 && framed.data) {
+        int pad = (framed.width - img.width) / 2;
+        origin.x -= pad;
+        origin.y -= pad;
+        ls_image_free(&img);
+        img = framed;
+    }
 }
 
 // 多窗口：各窗口单独截图（同单窗口方式），按原位置合成在外接矩形内，透明背景
@@ -1256,20 +1279,7 @@ bool Controller::RenderClickedWindow(Overlay *o, int64_t id, ls_image &img, POIN
         if (!exporter::RenderSelection(o->Session(), shot->img, scale, body)) return false;
         origin = {shot->rc.left + x, shot->rc.top + y};
     }
-    float radius = corners ? settings::Num("capture.windowCornerRadius") * scale : 0;
-    float sr = shadow ? settings::Num("capture.windowShadowRadius") * scale : 0;
-    float soff = shadow ? (float)std::lround(settings::Num("capture.windowShadowRadius") / 3) * scale : 0;
-    if (radius > 0 || sr > 0) {
-        ls_color sc = style::ToLs(ParseColor(settings::Str("capture.windowShadowColor"), Color{0, 0, 0, 0.4f}));
-        ls_image framed;
-        if (ls_image_frame(&body, radius, sr, soff, sc, &framed) == 0 && framed.data) {
-            int pad = (framed.width - body.width) / 2;
-            origin.x -= pad;
-            origin.y -= pad;
-            ls_image_free(&body);
-            body = framed;
-        }
-    }
+    ApplyFrame(body, origin, scale, "capture.window", corners, shadow);
     img = body;
     return true;
 }

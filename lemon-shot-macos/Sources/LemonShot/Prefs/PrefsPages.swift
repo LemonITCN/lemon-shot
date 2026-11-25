@@ -122,6 +122,13 @@ enum PrefsPages {
         p.row(L("pref.capture.delay"), Bind.stepper("capture.delaySeconds", min: 1, max: 60, format: seconds))
         p.row(L("pref.capture.delaySound"), Bind.toggle("capture.delaySound"))
 
+        p.group(L("pref.capture.region"))
+        p.row(L("pref.capture.windowCorners"), [Bind.toggle("capture.regionCorners"), Bind.stepper("capture.regionCornerRadius", min: 0, max: 9999, width: 136, format: points)],
+              info: L("pref.unit.pointsInfo"))
+        p.row(L("pref.capture.windowShadow"), [Bind.toggle("capture.regionShadow"), Bind.stepper("capture.regionShadowRadius", min: 0, max: 200, width: 136, format: points)],
+              info: L("pref.unit.pointsInfo"))
+        p.row(L("pref.capture.shadowColor"), Bind.color("capture.regionShadowColor", alpha: true))
+
         p.group(L("pref.capture.window"))
         // 圆角不设上限（内核按图片短边的一半封顶）；阴影太大没有意义且模糊很慢，到 200
         p.row(L("pref.capture.windowCorners"), [Bind.toggle("capture.windowCorners"), Bind.stepper("capture.windowCornerRadius", min: 0, max: 9999, width: 136, format: points)],

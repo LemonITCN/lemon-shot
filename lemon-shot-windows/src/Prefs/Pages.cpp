@@ -226,6 +226,13 @@ void Capture(FormPage *p) {
     p->AddRow(T("pref.capture.delay"), Step("capture.delaySeconds", 1, 60, 1, 1, 112, Seconds));
     p->AddRow(T("pref.capture.delaySound"), Toggle("capture.delaySound"));
 
+    p->AddGroup(T("pref.capture.region"));
+    p->AddRow(T("pref.capture.windowCorners"), {Toggle("capture.regionCorners"), Step("capture.regionCornerRadius", 0, 9999, 1, 1, 136, Points)},
+              T("pref.unit.pointsInfo"));
+    p->AddRow(T("pref.capture.windowShadow"), {Toggle("capture.regionShadow"), Step("capture.regionShadowRadius", 0, 200, 1, 1, 136, Points)},
+              T("pref.unit.pointsInfo"));
+    p->AddRow(T("pref.capture.shadowColor"), ColorBind("capture.regionShadowColor", true));
+
     p->AddGroup(T("pref.capture.window"));
     // 圆角不设上限（内核按图片短边的一半封顶）；阴影太大没有意义且模糊很慢，到 200
     p->AddRow(T("pref.capture.windowCorners"), {Toggle("capture.windowCorners"), Step("capture.windowCornerRadius", 0, 9999, 1, 1, 136, Points)},

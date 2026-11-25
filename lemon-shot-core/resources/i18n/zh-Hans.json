@@ -309,6 +309,7 @@
   "pref.capture.preset": "预设尺寸",
   "pref.capture.delay": "延时时长",
   "pref.capture.delaySound": "倒计时音效",
+  "pref.capture.region": "区域截图",
   "pref.capture.window": "窗口截图",
   "pref.capture.windowCorners": "圆角",
   "pref.capture.windowShadow": "阴影",

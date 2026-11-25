@@ -309,6 +309,7 @@
   "pref.capture.preset": "Preset size",
   "pref.capture.delay": "Delay",
   "pref.capture.delaySound": "Countdown sound",
+  "pref.capture.region": "Region capture",
   "pref.capture.window": "Window capture",
   "pref.capture.windowCorners": "Rounded corners",
   "pref.capture.windowShadow": "Shadow",

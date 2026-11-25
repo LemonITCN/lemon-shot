@@ -35,27 +35,40 @@ enum CaptureModes {
         }
     }
 
-    /// 圆角 + 阴影（像素单位交给 ls_image_frame）。阴影向下偏移取阴影半径的 1/3。
+    /// 窗口截图的圆角 + 阴影（capture.window*）。
     static func frameWindow(_ img: CGImage, scale: CGFloat, corners: Bool, shadow: Bool) -> CGImage {
+        frame(img, scale: scale, prefix: "capture.window", corners: corners, shadow: shadow)
+    }
+
+    /// 拖出（或按 F、上次区域、预设尺寸得到）的区域截图：按 capture.regionCorners/Shadow 加圆角阴影，都关时原样返回。
+    static func frameRegion(_ img: CGImage, scale: CGFloat) -> CGImage {
+        let s = Settings.shared
+        return frame(img, scale: scale, prefix: "capture.region", corners: s.bool("capture.regionCorners"), shadow: s.bool("capture.regionShadow"))
+    }
+
+    /// 圆角 + 阴影（像素单位交给 ls_image_frame）。prefix 下读 CornerRadius、ShadowRadius、ShadowColor（逻辑点乘缩放）。
+    /// 阴影向下偏移取阴影半径的 1/3。
+    static func frame(_ img: CGImage, scale: CGFloat, prefix: String, corners: Bool, shadow: Bool) -> CGImage {
         guard corners || shadow, let src = FrozenImage.from(img, scale: scale) else { return img }
         let s = Settings.shared
-        let radius = corners ? Float(s.double("capture.windowCornerRadius") * Double(scale)) : 0
-        let sr = shadow ? Float(s.double("capture.windowShadowRadius") * Double(scale)) : 0
+        let radius = corners ? Float(s.double(prefix + "CornerRadius") * Double(scale)) : 0
+        let sr = shadow ? Float(s.double(prefix + "ShadowRadius") * Double(scale)) : 0
+        guard radius > 0 || sr > 0 else { return img }
         var input = src.image
         var out = ls_image()
-        let color = Theme.lsColor(hex: s.string("capture.windowShadowColor"))
+        let color = Theme.lsColor(hex: s.string(prefix + "ShadowColor"))
         guard ls_image_frame(&input, radius, sr, sr / 3, color, &out) == 0, let fz = FrozenImage.adopt(out, scale: scale, space: src.colorSpace) else { return img }
         return fz.cgImage
     }
 
     /// 截图层里单击选中的窗口（spec 2.9）：截窗口自己的画面（被别的窗口挡住的部分也完整、四角透明），叠上标注，
     /// 按 capture.windowCorners/Shadow 加圆角阴影。截不到窗口画面时退回冻结画面的裁剪再加圆角阴影。
-    /// 圆角阴影都关着、或不是普通窗口（菜单栏、程序坞）时返回 nil，照普通选区导出。
+    /// 圆角阴影都关着、或是菜单栏、程序坞时返回 nil，照普通选区导出。
     /// 标注层和退回用的裁剪在这里画好：会话随截图层一起释放，返回的闭包在截图层关闭后运行。
     static func prepareWindowShot(session: Session, window: ScreenCapture.WindowInfo, displayOrigin: CGPoint) -> ((@escaping (Export.Result?) -> Void) -> Void)? {
         let s = Settings.shared
         let corners = s.bool("capture.windowCorners"), shadow = s.bool("capture.windowShadow")
-        guard corners || shadow, window.layer == 0 else { return nil }
+        guard corners || shadow, !window.isSystemBar else { return nil }
         let scale = session.scale
         let local = CGRect(x: window.frame.minX - displayOrigin.x, y: window.frame.minY - displayOrigin.y, width: window.frame.width, height: window.frame.height)
         let pw = Int((local.width * scale).rounded()), ph = Int((local.height * scale).rounded())

@@ -76,14 +76,14 @@
 
 按全局快捷键 `capture`（或菜单）：
 
-1. 立即抓取所有屏幕的完整画面（冻结），同时取窗口列表（只取在屏的普通窗口，排除自己的窗口，按 z 序从上到下）。整个过程目标 < 120 ms。
+1. 立即抓取所有屏幕的完整画面（冻结），同时取窗口列表（所有看得见、能悬停选中的窗口：普通窗口、浮动窗口、菜单栏图标弹出的面板、菜单、通知，以及本应用自己的偏好设置、贴图等窗口；按 z 序从上到下）。整个过程目标 < 120 ms。
 2. 每块屏一个全屏无边框置顶窗口（截图层），各自一个 `ls_session`，`base` 为该屏冻结画面。
 3. 光标所在屏获得键盘焦点。只有一块屏可以有选区：某块屏开始拖出选区时，其他屏的会话重置为无悬停、整屏遮罩。
 4. 选区只能在一块屏内（与 macOS 系统截图一致）。
 
 捕获策略：
-- Mac：macOS 14+ 用 `SCScreenshotManager` 按屏截图（`SCContentFilter(display:excludingWindows:[])`，`showsCursor` 按设置，分辨率 = 屏幕像素）；macOS 11–13 用 `CGWindowListCreateImage(CGRectNull…)`（SDK 已标为不可用，运行时用 `dlsym` 取）。窗口列表用 `CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID)`，取 layer 0 的普通窗口以及菜单栏、程序坞所在区域。
-- Windows：GDI `BitBlt(SRCCOPY|CAPTUREBLT)` 按显示器截取（快，不需要授权，Win7 起都可用）。窗口列表用 `EnumWindows`，可见、非最小化、非 cloaked（`DWMWA_CLOAKED`），矩形取 `DWMWA_EXTENDED_FRAME_BOUNDS`（Win7 无 DWM 时退回 `GetWindowRect`），按 z 序。截入光标：`GetCursorInfo` + `DrawIconEx` 画到冻结图上。
+- Mac：macOS 14+ 用 `SCScreenshotManager` 按屏截图（`SCContentFilter(display:excludingWindows:[])`，`showsCursor` 按设置，分辨率 = 屏幕像素）；macOS 11–13 用 `CGWindowListCreateImage(CGRectNull…)`（SDK 已标为不可用，运行时用 `dlsym` 取）。窗口列表用 `CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID)`，取 0 ≤ layer < 屏保层级的窗口；排除负层级（桌面小组件）、非 0 层且盖满整块屏的系统透明遮罩（程序坞、台前调度的整屏窗口等）、WindowServer 自己的窗口（菜单栏除外）、纯后台进程（`activationPolicy == .prohibited`）在非 0 层的窗口、本应用不接收鼠标的浮层与截图层、透明（alpha ≤ 0.01）或太小（< 24×16）的窗口。菜单栏、程序坞能选中，但不当成窗口截图（不加圆角阴影）。
+- Windows：GDI `BitBlt(SRCCOPY|CAPTUREBLT)` 按显示器截取（快，不需要授权，Win7 起都可用）。窗口列表用 `EnumWindows`，可见、非最小化、非 cloaked（`DWMWA_CLOAKED`），包括本应用自己的窗口（截图层在收集之后才建），排除点击穿透的浮层，矩形取 `DWMWA_EXTENDED_FRAME_BOUNDS`（Win7 无 DWM 时退回 `GetWindowRect`），按 z 序。截入光标：`GetCursorInfo` + `DrawIconEx` 画到冻结图上。
 - DPI：Windows 进程声明 Per-Monitor V2（Win10 1703+），Win8.1 退回 Per-Monitor，Win7 为系统 DPI。每块屏的 `scale` = 该屏 DPI / 96。Mac `scale` = `backingScaleFactor`。
 
 ### 2.2 截图层绘制（每块屏，从下到上）
@@ -191,6 +191,7 @@
 | 功能 | 行为 |
 |---|---|
 | 窗口阴影参数 | `ls_image_frame(radius = windowCornerRadius·scale, shadow_radius = windowShadowRadius·scale, shadow_offset_y = round(windowShadowRadius/3)·scale, shadow = windowShadowColor)`；输出四周各留 ceil(shadow_radius + |offset_y|) 像素透明边，原图位于 (pad, pad) |
+| 区域截图圆角阴影 | 拖出的选区（以及 F 整屏、上次区域、预设尺寸，即 `selection_window` 为 0 的选区）复制、保存时按 `capture.regionCorners/regionCornerRadius/regionShadow/regionShadowRadius/regionShadowColor` 用 `ls_image_frame` 加圆角阴影（参数换算同窗口阴影）；默认都关。贴图、文字识别、翻译不加 |
 | 单击选中的窗口 | 截图层里单击（或回车）选中窗口且选区没再拖动、拉伸（`selection_window` 非 0）时，复制、保存按窗口截图输出：窗口自己的画面（Mac `desktopIndependentWindow`；Windows `PrintWindow`）铺底，叠上标注（裁到选区内），按 `capture.windowCorners/Shadow` 加圆角阴影；截不到窗口画面时用冻结画面裁剪再加圆角阴影。圆角阴影都关、贴图、文字识别、翻译，以及菜单栏、程序坞、任务栏照普通选区 |
 | 截取光标下窗口 | 不进截图层，直接截光标下最上层窗口（Mac `SCScreenshotManager` 用 `desktopIndependentWindow`；macOS 11–13 `CGWindowListCreateImage(.optionIncludingWindow)`；Windows `PrintWindow(PW_RENDERFULLCONTENT)`，失败退回屏幕裁剪），按 `capture.windowCorners/Shadow` 用 `ls_image_frame` 加圆角阴影，然后按 `enterAction` 输出 |
 | 截取全屏 | 光标所在屏整屏，按 `enterAction` 输出 |

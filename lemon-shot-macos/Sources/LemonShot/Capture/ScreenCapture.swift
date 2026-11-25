@@ -11,6 +11,8 @@ enum ScreenCapture {
         var layer: Int
         var owner: String
         var pid: pid_t
+        /// 菜单栏、程序坞：能选中，但不当成窗口截图（不加圆角阴影，「截取光标下窗口」也跳过）
+        var isSystemBar = false
     }
 
     static func displayID(_ screen: NSScreen) -> CGDirectDisplayID {
@@ -29,10 +31,28 @@ enum ScreenCapture {
 
     // MARK: 窗口列表
 
-    /// 在屏的普通窗口（layer 0）以及菜单栏、程序坞，按 z 序从上到下，排除自己。
+    /// 截图层能悬停选中的窗口，按 z 序从上到下：普通窗口、浮动窗口、菜单栏图标弹出的面板、菜单、通知等
+    /// （0 ≤ 层级 < 屏保层级），也包括本应用自己的偏好设置、贴图、识别结果等窗口（截图层此时还没出来）。
+    /// 不要的：桌面小组件（负层级）、系统盖满整块屏的透明遮罩（非普通层且盖住整屏，如程序坞、台前调度的整屏窗口）、
+    /// WindowServer 自己的窗口（菜单栏除外）、纯后台进程在非普通层的窗口、本应用不接收鼠标的浮层（录屏边框等）、透明或太小的窗口。
+    /// 只在主线程调用（读 NSScreen 与本应用的窗口）。
     static func windowList() -> [WindowInfo] {
         guard let arr = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return [] }
         let me = ProcessInfo.processInfo.processIdentifier
+        let topLevel = Int(CGWindowLevelForKey(.screenSaverWindow))
+        let displays = NSScreen.screens.map { CGDisplayBounds(displayID($0)) }
+        func coversDisplay(_ r: CGRect) -> Bool {
+            displays.contains { d in
+                let i = r.intersection(d)
+                return !i.isNull && i.width * i.height >= d.width * d.height * 0.95
+            }
+        }
+        // 非普通层的窗口只认前台应用与菜单栏应用的（菜单栏图标弹出的面板、菜单等）；纯后台进程挂在高层的多是看不见的浮层
+        var dockPids = Set<pid_t>(), uiPids = Set<pid_t>()
+        for app in NSWorkspace.shared.runningApplications {
+            if app.bundleIdentifier == "com.apple.dock" { dockPids.insert(app.processIdentifier) }
+            if app.activationPolicy != .prohibited { uiPids.insert(app.processIdentifier) }
+        }
         var out: [WindowInfo] = []
         for d in arr {
             guard let num = d[kCGWindowNumber as String] as? NSNumber,
@@ -40,30 +60,31 @@ enum ScreenCapture {
                   let bd = d[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: bd) else { continue }
             let pid = (d[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value ?? 0
-            if pid == me { continue }
             let owner = d[kCGWindowOwnerName as String] as? String ?? ""
             let name = d[kCGWindowName as String] as? String ?? ""
             let alpha = (d[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1
+            let id = CGWindowID(num.uint32Value)
             if alpha <= 0.01 || rect.width < 24 || rect.height < 16 { continue }
-            var keep = false
-            if layer == 0 {
-                keep = true
-            } else if layer == Int(CGWindowLevelForKey(.mainMenuWindow)) && (name == "Menubar" || owner == "Window Server") {
-                keep = true
-            } else if layer == Int(CGWindowLevelForKey(.dockWindow)) && owner == "Dock" && min(rect.width, rect.height) < 300 {
-                keep = true
+            guard layer >= 0, layer < topLevel else { continue }
+            if layer != 0 && coversDisplay(rect) { continue }
+            let menubar = owner == "Window Server" && name == "Menubar"
+            if owner == "Window Server" && !menubar { continue }
+            if layer != 0 && !menubar && !dockPids.contains(pid) && !uiPids.contains(pid) { continue }
+            if pid == me {
+                // 本应用：只要看得见、接收鼠标的窗口（偏好设置、贴图等），截图层和录屏浮层不要
+                guard let w = NSApp.window(withWindowNumber: Int(id)), w.isVisible, !w.ignoresMouseEvents, !(w is CapturePanel) else { continue }
             }
-            if keep { out.append(WindowInfo(id: CGWindowID(num.uint32Value), frame: rect, layer: layer, owner: owner, pid: pid)) }
+            out.append(WindowInfo(id: id, frame: rect, layer: layer, owner: owner, pid: pid, isSystemBar: menubar || dockPids.contains(pid)))
         }
         return out
     }
 
-    /// 光标下最上层的普通窗口。
+    /// 光标下最上层的窗口（菜单栏、程序坞除外）。
     static func windowUnderCursor() -> WindowInfo? {
         let m = NSEvent.mouseLocation
         let primaryH = NSScreen.screens.first?.frame.height ?? 0
         let p = CGPoint(x: m.x, y: primaryH - m.y)
-        return windowList().first { $0.layer == 0 && $0.frame.contains(p) }
+        return windowList().first { !$0.isSystemBar && $0.frame.contains(p) }
     }
 
     // MARK: 截屏

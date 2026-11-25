@@ -35,7 +35,12 @@
     "windowShadowRadius": 24,
     "windowShadowColor": "#00000066",
     "multiWindowCorners": true,
-    "multiWindowShadow": true
+    "multiWindowShadow": true,
+    "regionCorners": false,
+    "regionCornerRadius": 12,
+    "regionShadow": false,
+    "regionShadowRadius": 24,
+    "regionShadowColor": "#00000066"
   },
   "save": {
     "enterAction": "copy",
