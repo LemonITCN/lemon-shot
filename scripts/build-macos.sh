@@ -7,7 +7,10 @@
 #     1. 环境变量 LEMONSHOT_SIGN_IDENTITY（证书名或 SHA-1；"-" 表示临时签名）
 #     2. 本机文件 scripts/.sign-identity（不进仓库，内容同上）
 #     3. 钥匙串里第一张 Developer ID Application，没有就第一张 Apple Development
-#     4. 都没有（例如 CI）才临时签名。临时签名的应用每次重新编译，屏幕录制等权限都会失效。
+#     4. 都没有才临时签名。临时签名的应用每次重新编译，屏幕录制等权限都会失效，所以装机（--install）和
+#        LEMONSHOT_REQUIRE_SIGNATURE=1（GitHub 推送 main / 打标签）时不许临时签名。
+#   签名身份锁定在 lemon-shot-macos/Packaging/designated-requirement.txt（当前是 LemonIT.CN 的 Apple Development 证书），
+#   签出来不一致直接失败；GitHub 用的同一张证书由 scripts/upload-macos-signing.sh 写进仓库 Secrets。
 #   --install：装到 /Applications/LemonShot.app 作为本机唯一一份（注销其他副本的登记）
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -98,6 +101,16 @@ EOF_IDS
   fi
 fi
 [ -z "$IDENTITY" ] && IDENTITY="-"
+# 签名身份锁定在 Packaging/designated-requirement.txt：系统按它记屏幕录制、辅助功能等授权，变了授权就全部失效。
+# 本机构建与 GitHub 打包（证书在仓库 Secrets，scripts/upload-macos-signing.sh 写入）必须签成同一个，不一致直接报错。
+EXPECT_DR="$(cat "$ROOT/lemon-shot-macos/Packaging/designated-requirement.txt")"
+if [ "$IDENTITY" = "-" ]; then
+  if [ "${LEMONSHOT_REQUIRE_SIGNATURE:-0}" = 1 ] || [ "$INSTALL" = 1 ]; then
+    echo "没有签名证书：要装到本机或正式打包必须用锁定的证书签名（scripts/.sign-identity 或 LEMONSHOT_SIGN_IDENTITY）" >&2
+    exit 1
+  fi
+  echo "警告：临时签名，系统授权每次重新编译都会失效，只能用来自测" >&2
+fi
 # 正式分发（Developer ID）才需要安全时间戳；临时签名和本地开发证书不联网取时间戳
 TS=--timestamp=none
 if [ "$IDENTITY" != "-" ]; then
@@ -105,6 +118,16 @@ if [ "$IDENTITY" != "-" ]; then
 fi
 echo "签名：$( [ "$IDENTITY" = "-" ] && echo 临时签名 || security find-identity -v -p codesigning | grep -F "$IDENTITY" | sed 's/.*"\(.*\)"/\1/' | head -1)"
 codesign --force --options runtime $TS --entitlements Packaging/LemonShot.entitlements --sign "$IDENTITY" "$APP"
+if [ "$IDENTITY" != "-" ]; then
+  GOT_DR="$(codesign -d -r- "$APP" 2>&1 | sed -n 's/^designated => //p')"
+  if [ "$GOT_DR" != "$EXPECT_DR" ]; then
+    echo "签名身份和锁定的不一致，装上后系统授权会全部失效：" >&2
+    echo "  实际：$GOT_DR" >&2
+    echo "  锁定：$EXPECT_DR" >&2
+    exit 1
+  fi
+  echo "签名要求与锁定的一致"
+fi
 echo "$APP"
 du -sh "$APP" | cat
 if [ "$DMG" = 1 ]; then
@@ -116,7 +139,7 @@ if [ "$DMG" = 1 ]; then
   ln -s /Applications "$STAGE/Applications"
   hdiutil create -volname "LemonShot" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG_PATH" >/dev/null
   rm -rf "$STAGE"
-  if [ "$IDENTITY" != "-" ]; then codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"; fi
+  if [ "$IDENTITY" != "-" ]; then codesign --force $TS --sign "$IDENTITY" "$DMG_PATH"; fi
   rm -f "$ZIP_PATH"
   ditto -c -k --keepParent "$APP" "$ZIP_PATH"
   echo "$DMG_PATH"
@@ -125,6 +148,14 @@ fi
 # 构建目录里的副本只给打包和自测用，不登记，免得和装好的那份混在一起
 "$LSREGISTER" -u "$APP" >/dev/null 2>&1 || true
 if [ "$INSTALL" = 1 ]; then
+  # 已装的那份签名不同（例如以前的临时签名包）：覆盖后授权会全部失效，先停下让人确认
+  if [ -d "/Applications/LemonShot.app" ] && [ "${LEMONSHOT_FORCE_INSTALL:-0}" != 1 ]; then
+    OLD_DR="$(codesign -d -r- "/Applications/LemonShot.app" 2>&1 | sed -n 's/^designated => //p')"
+    if [ "$OLD_DR" != "$EXPECT_DR" ]; then
+      echo "/Applications/LemonShot.app 的签名和这次不同，覆盖后屏幕录制等授权要全部重新给。确认要装：LEMONSHOT_FORCE_INSTALL=1 再运行" >&2
+      exit 1
+    fi
+  fi
   rm -rf "/Applications/LemonShot.app" "/Applications/Lemon Shot.app"
   ditto "$APP" "/Applications/LemonShot.app"
   "$LSREGISTER" -f "/Applications/LemonShot.app" >/dev/null 2>&1 || true

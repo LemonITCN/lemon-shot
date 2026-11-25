@@ -1,0 +1,1 @@
+identifier "cn.lemonit.shot" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: liuri@lemonit.cn (G3H76HNARJ)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */

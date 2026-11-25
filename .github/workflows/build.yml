@@ -10,10 +10,13 @@
 #   macOS 15 / 26（Apple 芯片与 Intel 各一台）、Windows Server 2022 / 2025（x64、x86）、Windows 11 ARM（arm64）、Ubuntu（内核）
 #   Windows 7/8 没有托管构建机：靠构建时的导入表检查保证不调用 Win7 没有的系统函数
 #
-# 可选的签名与公证（仓库 Settings → Secrets 里配置后自动启用，不配置则临时签名）
-#   MACOS_CERTIFICATE_P12        Developer ID Application 证书 .p12 的 base64
+# Mac 签名（仓库 Settings → Secrets，由本机 scripts/upload-macos-signing.sh 写入，与本机构建同一张证书）
+#   MACOS_CERTIFICATE_P12        签名证书 .p12 的 base64（只含 lemon-shot-macos/Packaging/designated-requirement.txt 锁定的那张）
 #   MACOS_CERTIFICATE_PASSWORD   .p12 密码
-#   MACOS_SIGN_IDENTITY          例如 "Developer ID Application: LemonIT (TEAMID)"
+#   MACOS_SIGN_IDENTITY          证书 SHA-1
+#   推送到 main 和打标签时必须签名，签出来的签名要求和锁定的不一致就失败、不发布（系统按它记授权，变了授权全部失效）；
+#   PR 拿不到 Secrets，临时签名，只自测不发布。
+# 可选的公证（证书是 Developer ID 时才有用）
 #   APPLE_NOTARY_KEY_P8          App Store Connect API 密钥 .p8 的 base64
 #   APPLE_NOTARY_KEY_ID          API 密钥 ID
 #   APPLE_NOTARY_ISSUER_ID       Issuer ID
@@ -56,6 +59,7 @@ jobs:
     name: 构建 macOS
     runs-on: macos-26
     env:
+      LEMONSHOT_REQUIRE_SIGNATURE: ${{ github.event_name != 'pull_request' && '1' || '0' }}
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
       MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
       MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
@@ -72,16 +76,19 @@ jobs:
       - name: 导入签名证书
         if: env.MACOS_CERTIFICATE_P12 != ''
         run: |
+          # 证书 + 私钥一起导入；中间证书 WWDR G3 随仓库（公开证书），构建机上不一定有
           KC="$RUNNER_TEMP/sign.keychain-db"
           KC_PASS="$(uuidgen)"
           echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security create-keychain -p "$KC_PASS" "$KC"
           security set-keychain-settings -lut 21600 "$KC"
           security unlock-keychain -p "$KC_PASS" "$KC"
-          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KC"
+          security import lemon-shot-macos/Packaging/certs/AppleWWDRCAG3.cer -k "$KC" || true
           security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
           security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$KC"
           echo "LEMONSHOT_SIGN_IDENTITY=$MACOS_SIGN_IDENTITY" >> "$GITHUB_ENV"
       - name: 构建通用包与 DMG
         run: scripts/build-macos.sh --dmg
@@ -128,6 +135,7 @@ jobs:
           BIN="app/LemonShot.app/Contents/MacOS/LemonShot"
           lipo -info "$BIN"
           codesign --verify --deep --strict "app/LemonShot.app"
+          codesign -d -r- "app/LemonShot.app" 2>&1 | grep designated
           mkdir -p selftest
           "$BIN" --selftest "$PWD/selftest" --scale 2 &
           PID=$!
@@ -267,6 +275,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MAC_NOTARIZED: ${{ secrets.MACOS_SIGN_IDENTITY != '' && secrets.APPLE_NOTARY_KEY_P8 != '' }}
+          MAC_SIGNED: ${{ secrets.MACOS_SIGN_IDENTITY != '' }}
         run: |
           VERSION="$(sed -n 's/#define LEMONSHOT_VERSION "\(.*\)"/\1/p' lemon-shot-core/src/internal.h)"
           if [ "$GITHUB_REF_TYPE" = tag ]; then TAG="$GITHUB_REF_NAME"; V="${TAG#v}"; else V="$VERSION.$GITHUB_RUN_NUMBER"; TAG="v$V"; fi
@@ -296,6 +305,9 @@ jobs:
             echo
             if [ "$MAC_NOTARIZED" != true ]; then
               echo "macOS 首次打开如果提示无法验证开发者，到「系统设置 → 隐私与安全性」底部点「仍要打开」。"
+            fi
+            if [ "$MAC_SIGNED" = true ]; then
+              echo "macOS 版每次都用同一张证书签名：覆盖安装新版后，屏幕录制、辅助功能等授权保留，不用重新授权。"
             fi
             echo "Windows 如果提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」。"
             echo
