@@ -112,6 +112,17 @@ class WidgetHost: NSView {
     override var isOpaque: Bool { false }
     /// 点击时是否抢第一响应者。截图层的工具栏、样式面板设为假：编辑文字时点它们不能结束编辑。
     var takesFocus = true
+    /// 截图层的工具栏、样式面板：宿主四周留了画阴影的透明边（ChromeHost.margin），透明边不接鼠标、不改光标，
+    /// 交给下面的截图层（透明边会伸进选区，挡住选区下边的控制点）。只有面板本身（root.frame）接鼠标。
+    var passThroughMargin = false {
+        didSet { updateTrackingAreas() }
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let v = super.hitTest(point)
+        guard passThroughMargin, v === self else { return v }
+        return root.frame.contains(convert(point, from: superview)) ? self : nil
+    }
     override var acceptsFirstResponder: Bool { takesFocus }
     override var mouseDownCanMoveWindow: Bool { false }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -119,7 +130,10 @@ class WidgetHost: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let t = trackingArea { removeTrackingArea(t) }
-        let t = NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate], owner: self, userInfo: nil)
+        // 透明边不接鼠标时，悬停与光标也只在面板本身（不用 inVisibleRect，按面板的矩形）
+        let t = passThroughMargin
+            ? NSTrackingArea(rect: root.frame, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .cursorUpdate], owner: self, userInfo: nil)
+            : NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate], owner: self, userInfo: nil)
         addTrackingArea(t)
         trackingArea = t
     }
@@ -154,6 +168,8 @@ class WidgetHost: NSView {
             if let w = w, w.tooltip != nil { scheduleTooltip(for: w) }
         }
         if let p = p { w?.mouseMoved(p) }
+        // 透明边不接鼠标时，移出面板后光标交给下面的截图层，不在这里改成箭头
+        if p == nil && passThroughMargin { return }
         (w?.hoverCursor ?? NSCursor.arrow).set()
     }
 

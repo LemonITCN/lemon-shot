@@ -234,6 +234,39 @@ TEST(session_selection_window) {
     CHECK_EQ(n.st().selection_window, 0);
 }
 
+TEST(session_selection_grip_at) {
+    Fx f;
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 100, 100), -1); // 还没选
+    f.select(100, 100, 600, 500);
+    // 下边三个控制点（工具栏就在下面，最容易被挡）：边线上下各 7pt 都算
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 100, 600), 6);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 400, 606), 5);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 693, 594), 4);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 106, 606), 6);
+    // 其余控制点与边
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 100, 100), 0);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 400, 100), 1);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 700, 350), 3);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 250, 601), 5); // 下边（不在控制点上）
+    // 离边太远、选区里面、选区外面都不算
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 400, 609), -1);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 400, 350), -1);
+    CHECK_EQ(ls_session_selection_grip_at(f.s, 900, 750), -1);
+    // 选区锁定（贴图标注）不能拉伸
+    Opt o;
+    o.lock = 1;
+    o.init = 1;
+    o.init_rect = ls_rect{100, 100, 600, 500};
+    Fx g(o);
+    CHECK_EQ(ls_session_selection_grip_at(g.s, 400, 600), -1);
+    // Shift 多选窗口也不能拉伸
+    Fx h;
+    set_windows(h, {{1, {50, 50, 300, 200}}});
+    h.move(100, 100);
+    h.click(100, 100, SHIFT);
+    CHECK_EQ(ls_session_selection_grip_at(h.s, 200, 250), -1);
+}
+
 TEST(session_too_small_selection_discarded) {
     Fx f;
     f.drag(100, 100, 103.5f, 140);

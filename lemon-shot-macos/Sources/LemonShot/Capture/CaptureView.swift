@@ -74,7 +74,7 @@ final class CaptureView: NSView {
         self.mode = mode
         self.session = session
         screenScale = scale
-        frozenView = NSView(frame: CGRect(origin: .zero, size: frame.size))
+        frozenView = DisplayOnlyView(frame: CGRect(origin: .zero, size: frame.size))
         crossH = PaintView(frame: .zero) { ctx, r in ctx.setFillColor(Theme.cap("crosshair")); ctx.fill(r) }
         crossV = PaintView(frame: .zero) { ctx, r in ctx.setFillColor(Theme.cap("crosshair")); ctx.fill(r) }
         super.init(frame: frame)
@@ -134,6 +134,7 @@ final class CaptureView: NSView {
         toolbarHost = WidgetHost(frame: CGRect(x: 0, y: 0, width: bar.frame.width + 2 * m, height: bar.frame.height + 2 * m), root: bar)
         toolbarHost.tooltipDelay = mode == .record ? 0.5 : 1e9
         toolbarHost.takesFocus = false
+        toolbarHost.passThroughMargin = true
         toolbarHost.isHidden = true
         toolbar.onItem = { [weak self] item in self?.toolbarItem(item) }
         toolbar.onHover = { [weak self] item, rect in self?.toolbarHover(item, rect) }
@@ -155,6 +156,13 @@ final class CaptureView: NSView {
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    /// 选区的控制点和边优先：工具栏、样式面板离选区近时（或它们的阴影边伸进选区）也不能挡住拉伸选区
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let hit = super.hitTest(point)
+        guard let h = hit, h !== self, h is WidgetHost, textView == nil, sizeEditor == nil else { return hit }
+        return session.selectionGrip(at: convert(point, from: superview)) != nil ? self : hit
+    }
 
     /// 截图层刚出现时按当前光标位置算一次悬停与放大镜。
     func syncInitialMouse(_ p: CGPoint) {
@@ -345,7 +353,8 @@ final class CaptureView: NSView {
     // MARK: 光标
 
     private func updateCursor(_ st: ls_session_state) {
-        guard mouseInView, !toolbarHost.frame.contains(mouse) || toolbarHost.isHidden else { return }
+        // 只有鼠标在工具栏面板本身上时不改光标（面板四周的透明阴影边照常按选区显示拉伸光标）
+        guard mouseInView, !toolbarRect.contains(mouse) || toolbarHost.isHidden || session.selectionGrip(at: mouse) != nil else { return }
         if mode == .colorPicker { NSCursor.crosshair.set(); return }
         CaptureView.cursor(st.cursor).set()
     }
@@ -573,6 +582,7 @@ final class CaptureView: NSView {
         let host = WidgetHost(frame: CGRect(x: 0, y: 0, width: p.frame.width + 2 * m, height: p.frame.height + 2 * m), root: p)
         host.tooltipDelay = 0.6
         host.takesFocus = false
+        host.passThroughMargin = true
         popover = p
         popoverHost = host
         popoverIsPreview = preview
@@ -656,6 +666,11 @@ final class CaptureView: NSView {
         sizeEditor = ed
         ed.focus()
     }
+}
+
+/// 只显示不接鼠标的视图（冻结画面层）：点击直接落到截图层本身。
+final class DisplayOnlyView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
 /// 标注文字的原生输入框：透明背景、无边框、字体字号颜色与标注一致，支持输入法。

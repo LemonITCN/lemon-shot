@@ -190,6 +190,12 @@ final class Session {
         return CGRect(x: Int(x), y: Int(y), width: Int(w), height: Int(h))
     }
 
+    /// 这个点能不能抓住选区拉伸（控制点或边），能返回控制点编号，不能返回 nil。
+    func selectionGrip(at p: CGPoint) -> Int32? {
+        let g = ls_session_selection_grip_at(ptr, Float(p.x), Float(p.y))
+        return g >= 0 ? g : nil
+    }
+
     func selectedWindows() -> [Int64] {
         var ids = [Int64](repeating: 0, count: 64)
         let n = ls_session_selected_windows(ptr, &ids, 64)

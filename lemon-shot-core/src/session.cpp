@@ -1678,6 +1678,12 @@ void ls_session_selection_pixels(const ls_session *s, int32_t *x, int32_t *y, in
     if (h) *h = y1 - y0;
 }
 
+int32_t ls_session_selection_grip_at(const ls_session *s, float x, float y) {
+    if (!s || s->phase != LS_PHASE_SELECTED || !s->has_sel || sel_locked(s)) return -1;
+    const Hit h = hit_test(s, x, y);
+    return h.kind == HIT_SEL_HANDLE || h.kind == HIT_SEL_EDGE ? h.handle : -1;
+}
+
 int32_t ls_session_selected_windows(const ls_session *s, int64_t *ids, int32_t capacity) {
     if (!s) return 0;
     const int32_t n = (int32_t)s->multi.size();

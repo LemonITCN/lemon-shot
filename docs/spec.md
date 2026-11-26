@@ -104,6 +104,8 @@
 
 位置 `ls_session_place_toolbar(w, h, toolbarGap, toolbarScreenMargin)`：默认在选区下方右对齐，放不下改上方，再放不下放选区内右下角。`Tab` 隐藏/显示。
 
+选区控制点优先：鼠标落在选区控制点或边上（`ls_session_selection_grip_at` ≥ 0）时，按下、移动、光标都交给内核拉伸选区，不算点到工具栏、样式面板、录屏面板；这些浮层只有面板本身接鼠标，四周画阴影的透明边（Mac `ChromeHost.margin`）和面板与选区之间的留空都不接。
+
 尺寸：高 `toolbar.height`，按钮 `button` 见方，图标 `iconSize`，按钮间距 `spacing`，左右内边距 `paddingX`，组之间分隔线（宽 `separatorWidth` 高 `separatorHeight`，左右各 `separatorMargin`）。底 `toolbarBg`，边 `toolbarBorder` 1pt，圆角 `radius`，阴影 `shadowBlur`/`shadowOffsetY`/`shadow`。按钮悬停 `surfaceHover` 底，按下 `surfacePressed`，当前工具 `surfaceSelected` 底 + `iconActive` 图标。
 
 按钮顺序（图标名 → 动作）：

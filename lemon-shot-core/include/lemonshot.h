@@ -279,6 +279,10 @@ void ls_session_get_state(const ls_session *s, ls_session_state *out);
 
 /* 选区的像素矩形（四舍五入规则两端一致，导出时用它裁剪）。 */
 void ls_session_selection_pixels(const ls_session *s, int32_t *x, int32_t *y, int32_t *w, int32_t *h);
+/* 这个点能不能抓住选区拉伸：落在选区控制点上返回控制点编号（0 左上、1 上、2 右上、3 右、4 右下、5 下、6 左下、7 左），
+   落在选区边上返回该边中点的编号，都不是（或选区锁定、多选窗口、还没选好）返回 -1。
+   平台用它让选区控制点优先于压在附近的工具栏、样式面板等浮层（浮层的阴影边、留空不能挡住控制点）。 */
+int32_t ls_session_selection_grip_at(const ls_session *s, float x, float y);
 /* 多选窗口的编号，按选择顺序。返回总数。 */
 int32_t ls_session_selected_windows(const ls_session *s, int64_t *ids, int32_t capacity);
 /* 读冻结画面某个逻辑点下的像素颜色（非预乘）。 */

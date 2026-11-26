@@ -346,6 +346,8 @@ void Overlay::Paint() {
 }
 
 bool Overlay::InUiZone(float x, float y) {
+    // 选区的控制点和边优先：工具栏、样式面板（及其外扩的留空）离选区近时不能挡住拉伸选区
+    if (session_ && ls_session_selection_grip_at(session_, x, y) >= 0) return false;
     if (ui_.hasToolbar && ui_.toolbar.rect.Inflate(0, theme::Tok().capture.toolbarGap).Contains(x, y)) return true;
     if (ui_.hasPopover && ui_.popoverRect.Inflate(theme::Tok().popover.gap).Contains(x, y)) return true;
     if (ui_.hasRecordPanel && recordPanel_ && recordPanel_->Rect().Inflate(0, theme::Tok().capture.toolbarGap).Contains(x, y))
@@ -441,8 +443,10 @@ void Overlay::OnButtonDown(int button, LPARAM lp, int clicks) {
         return;
     }
     Layout();
+    // 落在选区控制点或边上：交给内核拉伸选区，不算点到工具栏、样式面板、录屏面板
+    const bool grip = !edit_ && !sizeW_ && ls_session_selection_grip_at(session_, x, y) >= 0;
     // 编辑文字时可以在样式面板里改样式（内核会再发一次 TEXT_BEGIN 更新输入框）；点别处只结束编辑
-    bool inPopover = ui_.hasPopover && ui_.popoverRect.Contains(x, y);
+    bool inPopover = !grip && ui_.hasPopover && ui_.popoverRect.Contains(x, y);
     if (edit_ && !inPopover) {
         CommitText();
         return;
@@ -451,7 +455,7 @@ void Overlay::OnButtonDown(int button, LPARAM lp, int clicks) {
         EndSizeEdit(true);
         return;
     }
-    if (recordPanel_ && ui_.hasRecordPanel && recordPanel_->Rect().Contains(x, y)) {
+    if (!grip && recordPanel_ && ui_.hasRecordPanel && recordPanel_->Rect().Contains(x, y)) {
         if (button == LS_BUTTON_LEFT && recordPanel_->MouseDown(x, y) && recordPanel_->Pressed()) SetCapture(hwnd_);
         return;
     }
@@ -467,7 +471,7 @@ void Overlay::OnButtonDown(int button, LPARAM lp, int clicks) {
         }
         return;
     }
-    if (ui_.hasToolbar && ui_.toolbar.rect.Contains(x, y)) {
+    if (!grip && ui_.hasToolbar && ui_.toolbar.rect.Contains(x, y)) {
         if (button == LS_BUTTON_LEFT) {
             int id = HitToolbar(ui_.toolbar, x, y);
             ls_session_state st;

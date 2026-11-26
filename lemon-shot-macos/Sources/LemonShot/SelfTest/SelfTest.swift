@@ -47,6 +47,9 @@ enum SelfTest {
         write("capture-annotated", captureAnnotated(screen))
         for t in Int32(1)...Int32(10) { write("popover-" + AnnotStyles.key(t), popover(screen, tool: t)) }
         write("toolbar-hover", toolbarHover(screen))
+        // 真实截图层的点击命中：选区比工具栏窄、宽时，8 个控制点都要落到截图层（工具栏的阴影边不能挡）
+        let gripProblems = gripHitCheck(screen)
+        for p in gripProblems { FileHandle.standardError.write(Data("selftest: \(p)\n".utf8)) }
 
         // 贴图
         write("pin", pin(screen))
@@ -65,7 +68,57 @@ enum SelfTest {
         for p in PrefsPages.all { write("prefs-" + p.id, PrefsWindowController.render(page: p.id, scale: scale)) }
 
         print("selftest: 输出 \(count) 张到 \(dir.path)")
+        if !gripProblems.isEmpty { print("selftest: 控制点命中检查失败 \(gripProblems.count) 项"); return 1 }
+        print("selftest: 控制点命中检查通过")
         return 0
+    }
+
+    /// 在离屏窗口里摆一个真实的截图层，选区分别比工具栏窄、宽、贴着屏幕底（工具栏翻到上方），
+    /// 检查 8 个控制点被点中时接到事件的是截图层本身，不是工具栏、样式面板的宿主视图；工具栏按钮本身照样点得到。
+    static func gripHitCheck(_ screen: FrozenImage) -> [String] {
+        var problems: [String] = []
+        let selections: [(String, CGRect)] = [
+            ("比工具栏窄", CGRect(x: 600, y: 200, width: 160, height: 120)),
+            ("比工具栏宽", CGRect(x: 120, y: 160, width: 900, height: 300)),
+            ("贴着屏幕底", CGRect(x: 300, y: 560, width: 220, height: screenSize.height - 560)),
+        ]
+        for (name, sel) in selections {
+            guard let s = makeSession(screen) else { problems.append("\(name)：建会话失败"); continue }
+            _ = s.setSelection(sel)
+            _ = s.setTool(Int32(LS_TOOL_RECT.rawValue)) // 有样式面板，一起检查
+            let win = NSWindow(contentRect: CGRect(x: -30000, y: -30000, width: screenSize.width, height: screenSize.height),
+                               styleMask: [.borderless], backing: .buffered, defer: false)
+            win.isReleasedWhenClosed = false
+            let view = CaptureView(frame: CGRect(origin: .zero, size: screenSize), session: s, mode: .capture, scale: scale)
+            win.contentView = view
+            view.showPopover(tool: Int32(LS_TOOL_RECT.rawValue), preview: false)
+            let r = s.state.selection.cg
+            let pts = [CGPoint(x: r.minX, y: r.minY), CGPoint(x: r.midX, y: r.minY), CGPoint(x: r.maxX, y: r.minY), CGPoint(x: r.maxX, y: r.midY),
+                       CGPoint(x: r.maxX, y: r.maxY), CGPoint(x: r.midX, y: r.maxY), CGPoint(x: r.minX, y: r.maxY), CGPoint(x: r.minX, y: r.midY)]
+            for (i, p) in pts.enumerated() {
+                // 控制点中心，以及上下边控制点朝外 6pt（工具栏可能在下方或翻到上方）都要落到截图层；超出屏幕的不算
+                let out: CGFloat = (4...6).contains(i) ? 6 : ((0...2).contains(i) ? -6 : 0)
+                for q in [p, CGPoint(x: p.x, y: p.y + out)] where view.bounds.contains(q) {
+                    let hit = view.hitTest(view.convert(q, to: view.superview))
+                    if hit !== view { problems.append("\(name)：控制点 \(i) 在 \(q) 被 \(hit.map { String(describing: type(of: $0)) } ?? "无") 挡住") }
+                }
+            }
+            // 工具栏按钮本身仍然点得到；工具栏四周的透明阴影边不接鼠标
+            if let host = view.subviews.first(where: { ($0 as? WidgetHost)?.root is CaptureToolbar }) as? WidgetHost {
+                let body = host.convert(host.root.frame, to: view)
+                let margin = CGPoint(x: body.midX, y: body.minY - ChromeHost.margin / 2)
+                if host.hitTest(host.superview!.convert(margin, from: view)) != nil { problems.append("\(name)：工具栏的透明边还在接鼠标") }
+                let c = CGPoint(x: body.midX, y: body.midY)
+                if s.selectionGrip(at: c) == nil, view.hitTest(view.convert(c, to: view.superview)) !== host {
+                    problems.append("\(name)：工具栏中间点不到工具栏")
+                }
+            } else {
+                problems.append("\(name)：没有工具栏")
+            }
+            win.contentView = nil
+            win.close()
+        }
+        return problems
     }
 
     // MARK: 假数据
